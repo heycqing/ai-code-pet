@@ -178,17 +178,23 @@ export async function renderFeedMenu() {
   foods.forEach(f => {
     console.log(`    ${COLORS.action('[' + f.key + ']')} ${f.name.padEnd(8)} ${COLORS.dim(f.desc)}`);
   });
+  process.stdout.write('\n  > ');
 
-  pauseRawMode();
+  // Keep raw mode on and just grab a single keypress — avoids fighting with
+  // the main keypress listener and removes the need for a nested readline.
   return new Promise(resolve => {
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    process.stdout.write('\n  > ');
-    rl.once('line', (line) => {
-      rl.close();
-      resumeRawMode();
+    subMenuKeyHandler = (str, key) => {
+      if (key && key.ctrl && key.name === 'c') {
+        subMenuKeyHandler = null;
+        process.exit(0);
+      }
+      const ch = (str || '').trim();
       const map = { '1': 'normal', '2': 'snack', '3': 'veggie', '4': 'meat' };
-      resolve(map[line.trim()] || null);
-    });
+      // Any other key (including '0', Enter, ESC) cancels.
+      subMenuKeyHandler = null;
+      process.stdout.write((ch || '0') + '\n');
+      resolve(map[ch] || null);
+    };
   });
 }
 
@@ -222,15 +228,51 @@ export async function renderAdoptScreen() {
   return { type: selectedType, name: name.trim() };
 }
 
+// Line prompt implemented on top of the shared raw-mode keypress stream.
+// Avoids spawning a nested readline.Interface, which used to leave stdin
+// in an inconsistent (paused / wrong mode) state after the adoption flow
+// and caused the main menu to stop receiving keys.
 function prompt(question) {
+  process.stdout.write(question);
   return new Promise(resolve => {
-    pauseRawMode();
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    rl.question(question, (answer) => {
-      rl.close();
-      resumeRawMode();
-      resolve(answer);
-    });
+    let buffer = '';
+    subMenuKeyHandler = (str, key) => {
+      if (key && key.ctrl && key.name === 'c') {
+        subMenuKeyHandler = null;
+        process.stdout.write('\n');
+        process.exit(0);
+      }
+      if (key && (key.name === 'return' || key.name === 'enter')) {
+        subMenuKeyHandler = null;
+        process.stdout.write('\n');
+        resolve(buffer);
+        return;
+      }
+      if (key && key.name === 'escape') {
+        subMenuKeyHandler = null;
+        process.stdout.write('\n');
+        resolve('');
+        return;
+      }
+      if (key && (key.name === 'backspace' || key.name === 'delete')) {
+        if (buffer.length > 0) {
+          // Assume 1-column erase; good enough for CJK here too since
+          // the terminal renders over the previous cell.
+          buffer = buffer.slice(0, -1);
+          process.stdout.write('\b \b');
+        }
+        return;
+      }
+      // Printable characters (including multi-byte sequences like CJK)
+      if (str && !(key && key.ctrl) && !(key && key.meta)) {
+        // Filter out lone control bytes
+        const code = str.charCodeAt(0);
+        if (code >= 0x20 || str.length > 1) {
+          buffer += str;
+          process.stdout.write(str);
+        }
+      }
+    };
   });
 }
 

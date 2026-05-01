@@ -171,6 +171,15 @@ async function firstTimeSetup() {
 }
 
 async function main() {
+  // Install the shared keypress listener FIRST. Both the adoption flow and
+  // the feed submenu are driven by sub-menu handlers that piggy-back on this
+  // single stdin stream, so it must be active before any prompt runs.
+  setupKeyInput((str) => {
+    if (str) {
+      handleAction(str.toLowerCase());
+    }
+  });
+
   // Load or create pet
   const saved = loadPet();
 
@@ -188,13 +197,6 @@ async function main() {
 
   render();
   startAutoRefresh();
-
-  // Set up keyboard input
-  setupKeyInput((str) => {
-    if (str) {
-      handleAction(str.toLowerCase());
-    }
-  });
 
   // Graceful exit on signals
   process.on('SIGINT', quit);

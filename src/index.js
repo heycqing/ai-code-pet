@@ -1,15 +1,18 @@
 import chalk from 'chalk';
 import { Pet } from './pet.js';
 import { loadPet, savePet } from './storage.js';
+import { startBattle } from './battle.js';
 import {
   renderPet,
   renderMenu,
   renderMessage,
   renderLevelUp,
+  renderEvolution,
   renderFeedMenu,
   renderAdoptScreen,
   setupKeyInput,
 } from './ui.js';
+import { STAGE_LABELS } from './ascii.js';
 
 let pet = null;
 let lastMessage = '';
@@ -30,7 +33,6 @@ function render() {
 }
 
 function startAutoRefresh() {
-  // Refresh every 10 seconds to show stat decay in real-time
   refreshTimer = setInterval(() => {
     if (!isInSubMenu) {
       pet.applyTimeDecay();
@@ -54,17 +56,22 @@ async function handleAction(key) {
 
   let result;
   let leveledUp = false;
+  let evolved    = false;
+  let newStage   = pet.stageIndex;
 
   switch (key) {
     case '1': {
       isInSubMenu = true;
-      render(); // show current state first
+      render();
       const foodType = await renderFeedMenu();
       isInSubMenu = false;
       if (foodType) {
         const prevLevel = pet.level;
-        result = pet.feed(foodType);
+        const prevStage = pet.stageIndex;
+        result    = pet.feed(foodType);
         leveledUp = pet.level > prevLevel;
+        evolved   = pet.stageIndex > prevStage;
+        newStage  = pet.stageIndex;
       } else {
         result = { success: false, msg: '取消喂食' };
       }
@@ -72,27 +79,76 @@ async function handleAction(key) {
     }
     case '2': {
       const prevLevel = pet.level;
-      result = pet.play();
+      const prevStage = pet.stageIndex;
+      result    = pet.play();
       leveledUp = pet.level > prevLevel;
+      evolved   = pet.stageIndex > prevStage;
+      newStage  = pet.stageIndex;
       break;
     }
     case '3': {
       const prevLevel = pet.level;
-      result = pet.sleep();
+      const prevStage = pet.stageIndex;
+      result    = pet.sleep();
       leveledUp = pet.level > prevLevel;
+      evolved   = pet.stageIndex > prevStage;
+      newStage  = pet.stageIndex;
       break;
     }
     case '4': {
       const prevLevel = pet.level;
-      result = pet.heal();
+      const prevStage = pet.stageIndex;
+      result    = pet.heal();
       leveledUp = pet.level > prevLevel;
+      evolved   = pet.stageIndex > prevStage;
+      newStage  = pet.stageIndex;
       break;
     }
     case '5': {
       const prevLevel = pet.level;
-      result = pet.clean();
+      const prevStage = pet.stageIndex;
+      result    = pet.clean();
       leveledUp = pet.level > prevLevel;
+      evolved   = pet.stageIndex > prevStage;
+      newStage  = pet.stageIndex;
       break;
+    }
+    case '6': {
+      isInSubMenu = true;
+      if (refreshTimer) clearInterval(refreshTimer);
+
+      const battleResult = await startBattle(pet);
+
+      isInSubMenu = false;
+
+      if (battleResult.cannotFight) {
+        setMessage(battleResult.msg, true);
+      } else if (battleResult.fled) {
+        setMessage(`${pet.name}逃跑了...`);
+      } else if (battleResult.won) {
+        pet.wins += 1;
+        const prevLevel = pet.level;
+        const prevStage = pet.stageIndex;
+        const gain = pet.gainExp(battleResult.expGain);
+        leveledUp = pet.level > prevLevel;
+        evolved   = pet.stageIndex > prevStage;
+        newStage  = pet.stageIndex;
+        pet.happiness = Math.min(100, pet.happiness + 15);
+        setMessage(`胜利！获得 ${battleResult.expGain} 经验值！`);
+      } else {
+        pet.losses += 1;
+        pet.health    = Math.max(0, pet.health    - 15);
+        pet.happiness = Math.max(0, pet.happiness - 10);
+        setMessage(`${pet.name}输了... 下次加油！`, true);
+      }
+
+      pet.applyTimeDecay();
+      savePet(pet);
+      render();
+      if (leveledUp) renderLevelUp(pet.level);
+      if (evolved)   renderEvolution(STAGE_LABELS[newStage] ?? '');
+      startAutoRefresh();
+      return;
     }
     case 'r':
     case 'R': {
@@ -114,12 +170,10 @@ async function handleAction(key) {
 
   pet.applyTimeDecay();
   savePet(pet);
-
   render();
 
-  if (leveledUp) {
-    renderLevelUp(pet.level);
-  }
+  if (leveledUp) renderLevelUp(pet.level);
+  if (evolved)   renderEvolution(STAGE_LABELS[newStage] ?? '');
 }
 
 async function adoptNewPet() {
@@ -127,13 +181,12 @@ async function adoptNewPet() {
   if (refreshTimer) clearInterval(refreshTimer);
 
   const result = await renderAdoptScreen();
-
   isInSubMenu = false;
 
   if (result) {
     pet = new Pet({ type: result.type, name: result.name });
     savePet(pet);
-    setMessage(`欢迎 ${result.name} 来到你的家！`, false);
+    setMessage(`欢迎 ${result.name} 来到你的身边！它还是一颗蛋，好好照顾吧！`);
   }
 
   render();
@@ -154,8 +207,8 @@ function quit() {
 async function firstTimeSetup() {
   isInSubMenu = true;
   console.clear();
-  console.log(chalk.bold.yellow('\n  ✦ 欢迎来到 ASCII 宠物乐园！✦\n'));
-  console.log(chalk.dim('  你还没有宠物，先领养一只吧！\n'));
+  console.log(chalk.bold.yellow('\n  ✦ 欢迎来到数码宝贝养成！✦\n'));
+  console.log(chalk.dim('  你还没有数码宝贝，先选一只孵化吧！\n'));
 
   const result = await renderAdoptScreen();
   isInSubMenu = false;
@@ -167,22 +220,15 @@ async function firstTimeSetup() {
 
   pet = new Pet({ type: result.type, name: result.name });
   savePet(pet);
-  setMessage(`欢迎 ${result.name} 来到你的家！`, false);
+  setMessage(`欢迎 ${result.name} 来到你的身边！它还是一颗蛋，好好照顾吧！`);
 }
 
 async function main() {
-  // Install the shared keypress listener FIRST. Both the adoption flow and
-  // the feed submenu are driven by sub-menu handlers that piggy-back on this
-  // single stdin stream, so it must be active before any prompt runs.
   setupKeyInput((str) => {
-    if (str) {
-      handleAction(str.toLowerCase());
-    }
+    if (str) handleAction(str.toLowerCase());
   });
 
-  // Load or create pet
   const saved = loadPet();
-
   if (saved && saved.name) {
     pet = saved;
     pet.applyTimeDecay();
@@ -198,8 +244,7 @@ async function main() {
   render();
   startAutoRefresh();
 
-  // Graceful exit on signals
-  process.on('SIGINT', quit);
+  process.on('SIGINT',  quit);
   process.on('SIGTERM', quit);
 }
 

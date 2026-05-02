@@ -17,19 +17,59 @@ import { STAGE_LABELS } from './ascii.js';
 let pet = null;
 let lastMessage = '';
 let lastMessageIsError = false;
+let lastMessageIsSpeech = false;
 let isInSubMenu = false;
 let refreshTimer = null;
+let speechCooldown = 0;
 
-function setMessage(msg, isError = false) {
+const PET_SPEECH = {
+  critical_hunger: ['肚子咕咕叫好久了！！', '快饿晕了...快来喂我！', '我要饿死了...呜呜...'],
+  critical_health: ['好难受...我快撑不住了...', '身体越来越差了，需要帮助...', '呜...感觉很痛...'],
+  hungry:    ['好像有点饿了呢...', '能给我点吃的吗？', '肚子有点空空的...'],
+  exhausted: ['走不动了...快睡着了...', '太累了...zzz...'],
+  tired:     ['有点累了...好想睡觉', '今天玩了好久，眼皮好重...', '可以休息一下吗？'],
+  sick:      ['感觉有点不舒服...', '头有点晕晕的...', '身体好像有点不对劲...'],
+  sad:       ['好无聊啊...', '有人陪我玩吗？', '是不是不喜欢我了...（委屈）', '好孤单...'],
+  happy:     ['今天真的好开心！', '好喜欢和你在一起！', '嘿嘿，心情超好～', '感觉整个世界都在发光！'],
+  idle:      ['今天天气怎么样呀？', '在想什么呢...', '...（发呆中）', '嗯...嗯嗯...'],
+};
+
+function pick(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function getPetSpeech(pet) {
+  if (pet.isDead) return null;
+
+  // Critical states always speak
+  if (pet.hunger >= 90) return pick(PET_SPEECH.critical_hunger);
+  if (pet.health <= 15) return pick(PET_SPEECH.critical_health);
+
+  if (speechCooldown > 0) { speechCooldown--; return null; }
+  if (Math.random() > 0.5) { speechCooldown = 2; return null; }
+
+  speechCooldown = 3;
+
+  if (pet.energy <= 10)                        return pick(PET_SPEECH.exhausted);
+  if (pet.hunger >= 70)                        return pick(PET_SPEECH.hungry);
+  if (pet.energy <= 25)                        return pick(PET_SPEECH.tired);
+  if (pet.health <= 40)                        return pick(PET_SPEECH.sick);
+  if (pet.happiness <= 20)                     return pick(PET_SPEECH.sad);
+  if (pet.happiness >= 85 && pet.hunger < 40)  return pick(PET_SPEECH.happy);
+  return pick(PET_SPEECH.idle);
+}
+
+function setMessage(msg, isError = false, isSpeech = false) {
   lastMessage = msg;
   lastMessageIsError = isError;
+  lastMessageIsSpeech = isSpeech;
 }
 
 function render() {
   if (isInSubMenu) return;
   renderPet(pet);
   renderMenu(pet);
-  renderMessage(lastMessage, lastMessageIsError);
+  renderMessage(lastMessage, lastMessageIsError, lastMessageIsSpeech);
 }
 
 function startAutoRefresh() {
@@ -37,6 +77,8 @@ function startAutoRefresh() {
     if (!isInSubMenu) {
       pet.applyTimeDecay();
       savePet(pet);
+      const speech = getPetSpeech(pet);
+      if (speech) setMessage(speech, false, true);
       render();
     }
   }, 10000);

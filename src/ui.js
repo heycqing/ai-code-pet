@@ -17,6 +17,7 @@ const COLORS = {
   pet:     chalk.bold.white,
   levelup: chalk.bold.magenta,
   evolve:  chalk.bold.green,
+  speech:  chalk.bold.whiteBright,
 };
 
 function clearScreen() {
@@ -163,11 +164,15 @@ export function renderMenu(pet) {
 // ─────────────────────────────────────────────
 // Messages
 // ─────────────────────────────────────────────
-export function renderMessage(msg, isError = false) {
+export function renderMessage(msg, isError = false, isSpeech = false) {
   if (!msg) return;
-  const color = isError ? COLORS.bad : COLORS.good;
   console.log();
-  console.log('  ' + color('▶ ' + msg));
+  if (isSpeech) {
+    console.log('  ' + COLORS.speech(`「${msg}」`));
+  } else {
+    const color = isError ? COLORS.bad : COLORS.good;
+    console.log('  ' + color('▶ ' + msg));
+  }
 }
 
 export function renderLevelUp(level) {

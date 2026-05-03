@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>神兽 · 虚拟宠物</title>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@400;600;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { width: 100%; height: 100%; background: #0a0a0f; display: flex; align-items: center; justify-content: center; font-family: 'Noto Serif SC', serif; overflow: hidden; }
+  #root { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+
+  /* Pixel font for numbers */
+  @keyframes float    { 0%,100%{transform:translateY(0)}  50%{transform:translateY(-8px)} }
+  @keyframes bounce   { 0%,100%{transform:scaleY(1)}      50%{transform:scaleY(0.88) scaleX(1.1)} }
+  @keyframes shake    { 0%,100%{transform:translateX(0)}  25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+  @keyframes spin     { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+  @keyframes fadeIn   { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes pulse    { 0%,100%{opacity:1} 50%{opacity:.5} }
+  @keyframes sparkle  { 0%{opacity:0;transform:scale(0)} 50%{opacity:1;transform:scale(1.2)} 100%{opacity:0;transform:scale(0)} }
+  @keyframes slideUp  { from{transform:translateY(100%)} to{transform:translateY(0)} }
+  @keyframes glow     { 0%,100%{box-shadow:0 0 8px var(--accent)} 50%{box-shadow:0 0 22px var(--accent)} }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ─────────────────────────────────────────────────────────────────
+// THEME SYSTEM — 3 directions
+// ─────────────────────────────────────────────────────────────────
+const THEMES = {
+  ink: {
+    name: '水墨古典',
+    bg:       '#0d0c0a',
+    bgCard:   '#16140f',
+    bgPanel:  '#1e1b14',
+    border:   '#3a3020',
+    accent:   '#c8941a',
+    accentSoft:'#c8941a30',
+    text:     '#e8dfc0',
+    textMuted:'#8a7a50',
+    textDim:  '#4a3f28',
+    statFill: '#c8941a',
+    statBg:   '#2a2518',
+    navBg:    '#16140f',
+    navBorder:'#3a3020',
+    btnBg:    '#2a2518',
+    btnBorder:'#6a5a30',
+    btnText:  '#e8dfc0',
+    danger:   '#c84040',
+    success:  '#50a060',
+    special:  '#6080c8',
+    overlay:  '#0d0c0aee',
+  },
+  dark: {
+    name: '暗黑现代',
+    bg:       '#08080f',
+    bgCard:   '#10101a',
+    bgPanel:  '#18182a',
+    border:   '#252540',
+    accent:   '#8060f0',
+    accentSoft:'#8060f030',
+    text:     '#d0c8f0',
+    textMuted:'#6060a0',
+    textDim:  '#303060',
+    statFill: '#8060f0',
+    statBg:   '#201830',
+    navBg:    '#10101a',
+    navBorder:'#252540',
+    btnBg:    '#201830',
+    btnBorder:'#503080',
+    btnText:  '#d0c8f0',
+    danger:   '#e04060',
+    success:  '#40b060',
+    special:  '#40b0e0',
+    overlay:  '#08080fee',
+  },
+  rouge: {
+    name: '丹砂朱色',
+    bg:       '#0f0808',
+    bgCard:   '#1a1010',
+    bgPanel:  '#241818',
+    border:   '#402020',
+    accent:   '#d04828',
+    accentSoft:'#d0482830',
+    text:     '#f0d8c8',
+    textMuted:'#907060',
+    textDim:  '#503030',
+    statFill: '#d04828',
+    statBg:   '#301818',
+    navBg:    '#1a1010',
+    navBorder:'#402020',
+    btnBg:    '#301818',
+    btnBorder:'#703030',
+    btnText:  '#f0d8c8',
+    danger:   '#e06040',
+    success:  '#60a050',
+    special:  '#d09040',
+    overlay:  '#0f0808ee',
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────
+// CREATURE DATA
+// ─────────────────────────────────────────────────────────────────
+const CREATURES = {
+  hundun: {
+    id: 'hundun',
+    name: '混沌',
+    nameEn: 'Hundun',
+    desc: '状如犬，有四翼，有腹无五藏，不知歌，不知食。',
+    type: '混沌·无相',
+    personality: '混乱可爱，行为不可预测',
+    color: '#7040c0',
+    colorSoft: '#7040c020',
+    levels: ['混沌核', '浑球', '混沌幼兽', '涡灵', '混沌神兽'],
+    // Sprite: placeholder canvas art per level + state
+    spriteStyle: 'chaos',
+  },
+  baize: {
+    id: 'baize',
+    name: '白泽',
+    nameEn: 'Baize',
+    desc: '王者有德，明照幽远，则至；达知万物之情。',
+    type: '圣兽·全知',
+    personality: '智慧温柔，如导师守护者',
+    color: '#80c8f0',
+    colorSoft: '#80c8f020',
+    levels: ['灵珠', '白芽', '白泽幼兽', '圣鹿', '白泽神兽'],
+    spriteStyle: 'sage',
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────
+// PIXEL SPRITE RENDERER (canvas-based placeholder art)
+// ─────────────────────────────────────────────────────────────────
+const PAL = {
+  '_':null,'K':'#111118','k':'#2a2a3a',
+  'W':'#f4f4f4','w':'#d8d8e8','L':'#b0b8cc',
+  'V':'#7040c0','v':'#9060d8','u':'#b090f0',
+  'G':'#e09820','g':'#f8c840','y':'#f8d860',
+  'B':'#3060c8','b':'#5888e8','C':'#80b8e0','c':'#b0d8f0',
+  'R':'#c03010','r':'#e04828',
+  'O':'#e86820','o':'#f09040',
+  'M':'#6878a0','m':'#8898b8','S':'#a8b8cc',
+  'l':'#8890a8','P':'#f0a0b8','p':'#f8c8d8',
+  'E':'#50a840','e':'#80d060',
+  'N':'#384898',
+};
+
+// Hundun sprites at each level (16×16 for compactness, scaled up)
+const HUNDUN_SPRITES = {
+  0: { // 混沌核 — tiny swirling orb
+    idle: [
+      '____KVVVVK______',
+      '___KVvvvvVK_____',
+      '__KVvGGvGGvVK___',
+      '__KVvGggGggvVK__',
+      '_KVvvvvvvvvvVK__',
+      '_KVvGGvvvGGvVK__',
+      '_KVvGggvvggGvVK_',
+      '_KVvvvvvvvvvVVK_',
+      '__KVVvvvvvVVK___',
+      '___KKVVVVKK_____',
+      '________________',
+      '________________',
+      '________________',
+      '________________',
+      '________________',
+      '________________',
+    ],
+  },
+  1: { // 浑球 — round ball with one eye
+    idle: [
+      '____KVVVVVk_____',
+      '___KVvvvvvVK____',
+      '__KVvvvvvvvVK___',
+      '__KVvKKvvvvVK___',
+      '__KVvWWvvGvVK___',
+      '__KVvvvvGggVK___',
+      '__KVvvvvGgvVK___',
+      '__KVvvvvvvVVK___',
+      '__KKVVVVVVKk____',
+      '________________',
+      '___KK___KK______',
+      '________________',
+      '________________',
+      '________________',
+      '________________',
+      '________________',
+    ],
+  },
+  2: { // 混沌幼兽 — small critter with wings
+    idle: [
+      '__KV_____VK_____',
+      '_KVVk___kVVK____',
+      'KVVVKvvvKVVVK___',
+      '_KVKvvvvvKVK____',
+      '__KvKKvvKvK_____',
+      '__KvWWvvWvK_____',
+      '__KvvvvvvvK_____',
+      '__KvGGvGGvK_____',
+      '__KKvvvvvKK_____',
+      '___KKVVVKk______',
+      '____KvK_KvK_____',
+      '____KKK_KKK_____',
+      '________________',
+      '________________',
+      '________________',
+      '________________',
+    ],
+  },
+  3: { // 涡灵 — vortex spirit
+    idle: [
+      '__KV_______VK___',
+      '_KVVk_____kVVK__',
+      'KVVVKVvvvKVVVK__',
+      'KVVKvvvvvvvKVK__',
+      'KVKvvGGvGGvvKVK_',
+      'KVKvGggvvggGvKK_',
+      'KVKvvvvvvvvvKK__',
+      '_KVKvGGvGGvKK___',
+      '__KKvvvvvvKK____',
+      '___KKVVVVKk_____',
+      '____KvK_KvK_____',
+      '___KuuK_KuuK____',
+      '________________',
+      '________________',
+      '________________',
+      '________________',
+    ],
+  },
+  4: { // 混沌神兽 — full form
+    idle: [
+      '_KV_________VK__',
+      'KVVk_______kVVK_',
+      'KVVKVvvvvvKVVVK_',
+      'KVKvvvvvvvvvKVK_',
+      'KVKvGGGvGGGvKVK_',
+      'KVKvGgggggGvKVK_',
+      'KVKvvvvvvvvvKVK_',
+      'KVKvGGGvGGGvKVK_',
+      '_KVKvvvvvvvKVK__',
+      '__KKVVvvvVVKk___',
+      '___KuuK_KuuK____',
+      '__KuuuK_KuuuK___',
+      '________________',
+      '________________',
+      '________________',
+      '________________',
+    ],
+  },
+};
+
+// Baize sprites at each level
+const BAIZE_SPRITES = {
+  0: { // 灵珠 — small glowing orb
+    idle: [
+      '____KcccK_______',
+      '___KccccccK_____',
+      '__KccWWccccK____',
+      '__KccWWccccK____',
+      '__KcccccccK_____',
+      '___KKcccKK______',
+      '________________',
+      '________________',
+      '________________',
+      '________________',
+      '________________',
+      '________________',
+      '________________',
+      '________________',
+      '________________',
+      '________________',
+    ],
+  },
+  1: { // 白芽 — small white sprout
+    idle: [
+      '_____KWK________',
+      '____KWWWK_______',
+      '___KWWWWwK______',
+      '__KWWKKWWwK_____',
+      '__KWWWWWWwK_____',
+      '__KWcccWWwK_____',
+      '__KKWWWWwKK_____',
+      '___KWWWWwK______',
+      '___KKKKKKK______',
+      '___KWK_KWK______',
+      '________________',
+      '________________',
+      '________________',
+      '________________',
+      '________________',
+      '________________',
+    ],
+  },
+  2: { // 白泽幼兽 — small white deer-like
+    idle: [
+      '___KgK__KgK_____',
+      '___KGK__KGK_____',
+      '__KWWWWWWWwK____',
+      '_KWWWWWWWWwwK___',
+      '_KWWKKWWWWwwK___',
+      '_KWWWWWWWWwwK___',
+      '_KWWcccWWWwwK___',
+      '_KWWWWWWWWwK____',
+      '__KKKKKKKKk_____',
+      '__KWK___KWK_____',
+      '__KWK___KWK_____',
+      '__KcK___KcK_____',
+      '________________',
+      '________________',
+      '________________',
+      '________________',
+    ],
+  },
+  3: { // 圣鹿 — noble white deer
+    idle: [
+      '__KgK_____KgK___',
+      '__KGK_____KGK___',
+      '_KGGGK___KGGGk__',
+      '_KWWWWWWWWWWwK__',
+      'KWWWWWWWWWWWwwK_',
+      'KWWKKWWWWWWwwwK_',
+      'KWWWWWWWWWWwwwK_',
+      'KWWcccWWWWWwwK__',
+      '_KWWWWWWWWwwK___',
+      '__KKKKKKKKkK____',
+      '___KWK_KWK______',
+      '___KWK_KWK______',
+      '___KWK_KWK______',
+      '__KcWK_KWcK_____',
+      '________________',
+      '________________',
+    ],
+  },
+  4: { // 白泽神兽 — full majestic form
+    idle: [
+      '_KgK_______KgK__',
+      '_KGK_______KGK__',
+      'KGGGk_____kGGGK_',
+      'KGWWWKWWWKWWWGK_',
+      'KWWWWWWWWWWWWwK_',
+      'KWWKKWWWWWWwwwK_',
+      'KWWWWWWWWWWwwwK_',
+      'KWWcccWWWWWwwwK_',
+      '_KWWWWWWWWWwwK__',
+      '__KKKKKKKKKkK___',
+      '___KWK___KWK____',
+      '___KWK___KWK____',
+      '___KWK___KWK____',
+      '__KcWK___KWcK___',
+      '__KccK___KccK___',
+      '________________',
+    ],
+  },
+};
+
+function drawPixelSprite(canvas, grid, scale=4) {
+  if (!canvas || !grid) return;
+  const W = 16, H = 16;
+  canvas.width  = W * scale;
+  canvas.height = H * scale;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  for (let r=0; r<H; r++) {
+    const row = (grid[r]||'').padEnd(W,'_');
+    for (let c=0; c<W; c++) {
+      const col = PAL[row[c]];
+      if (!col) continue;
+      ctx.fillStyle = col;
+      ctx.fillRect(c*scale, r*scale, scale, scale);
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SPRITE COMPONENT
+// ─────────────────────────────────────────────────────────────────
+function PixelSprite({ creature, level, state='idle', scale=4, style={} }) {
+  const canvasRef = useRef();
+  const grids = creature.id === 'hundun' ? HUNDUN_SPRITES : BAIZE_SPRITES;
+  const levelData = grids[Math.min(level, 4)];
+  const grid = levelData?.idle || [];
+
+  useEffect(() => {
+    if (canvasRef.current) drawPixelSprite(canvasRef.current, grid, scale);
+  }, [grid, scale]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{ imageRendering:'pixelated', ...style }}
+    />
+  );
+}
+
+// Animated sprite with float/bounce/shake
+function AnimatedSprite({ creature, level, mood, scale=5 }) {
+  const animMap = {
+    happy: 'float 1.2s ease-in-out infinite',
+    hungry: 'shake 0.5s ease-in-out infinite',
+    sick: 'shake 0.8s ease-in-out infinite',
+    sleeping: 'none',
+    dead: 'none',
+    idle: 'float 2.4s ease-in-out infinite',
+  };
+  return (
+    <div style={{ animation: animMap[mood] || animMap.idle, display:'inline-block' }}>
+      <PixelSprite creature={creature} level={level} scale={scale} />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// STAT BAR
+// ─────────────────────────────────────────────────────────────────
+function StatBar({ label, icon, value, max=100, theme, color }) {
+  const pct = Math.max(0, Math.min(100, (value/max)*100));
+  const fillColor = pct > 60 ? (color||theme.statFill) : pct > 30 ? theme.special : theme.danger;
+  return (
+    <div style={{ marginBottom:6 }}>
+      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:3 }}>
+        <span style={{ fontSize:11, color:theme.textMuted, letterSpacing:'0.05em' }}>
+          {icon} {label}
+        </span>
+        <span style={{ fontSize:11, color:theme.textMuted, fontVariantNumeric:'tabular-nums' }}>
+          {Math.round(value)}/{max}
+        </span>
+      </div>
+      <div style={{
+        height:6, background:theme.statBg, borderRadius:3,
+        overflow:'hidden', border:`1px solid ${theme.border}`,
+      }}>
+        <div style={{
+          height:'100%', width:`${pct}%`, background:fillColor,
+          borderRadius:3, transition:'width 0.5s ease',
+          boxShadow: pct > 60 ? `0 0 6px ${fillColor}60` : 'none',
+        }}/>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// NAV BAR
+// ─────────────────────────────────────────────────────────────────
+const NAV_ITEMS = [
+  { id:'main',     icon:'🏠', label:'主界面' },
+  { id:'feed',     icon:'🍖', label:'喂食' },
+  { id:'train',    icon:'⚔️',  label:'训练' },
+  { id:'evolve',   icon:'✨', label:'进化' },
+  { id:'compend',  icon:'📖', label:'图鉴' },
+  { id:'settings', icon:'⚙️',  label:'设置' },
+];
+
+function NavBar({ screen, setScreen, theme }) {
+  return (
+    <div style={{
+      display:'flex', borderTop:`1px solid ${theme.navBorder}`,
+      background:theme.navBg, paddingBottom:4,
+    }}>
+      {NAV_ITEMS.map(n => {
+        const active = screen === n.id;
+        return (
+          <button key={n.id} onClick={() => setScreen(n.id)} style={{
+            flex:1, display:'flex', flexDirection:'column', alignItems:'center',
+            gap:2, padding:'8px 0 4px', background:'none', border:'none',
+            cursor:'pointer',
+          }}>
+            <span style={{ fontSize:18, opacity: active ? 1 : 0.45 }}>{n.icon}</span>
+            <span style={{
+              fontSize:9, letterSpacing:'0.04em',
+              color: active ? theme.accent : theme.textDim,
+              fontWeight: active ? 600 : 400,
+            }}>{n.label}</span>
+            {active && <div style={{
+              width:20, height:2, background:theme.accent,
+              borderRadius:1, marginTop:2,
+              boxShadow:`0 0 6px ${theme.accent}`,
+            }}/>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SCREEN: MAIN
+// ─────────────────────────────────────────────────────────────────
+function MainScreen({ pet, theme, onAction }) {
+  const creature = CREATURES[pet.creatureId];
+  const moodEmoji = { idle:'😌', happy:'😄', hungry:'😤', sick:'🤒', sleeping:'😴', dead:'💀' };
+  const timeOfDay = ['清晨','上午','午后','傍晚','深夜'][Math.floor((new Date().getHours()/24)*5)];
+
+  // Floating sparkle particles for happy mood
+  const sparkles = pet.mood === 'happy' ? ['✦','✧','✦'] : [];
+
+  return (
+    <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      {/* Top info bar */}
+      <div style={{
+        display:'flex', justifyContent:'space-between', alignItems:'center',
+        padding:'10px 16px 6px', borderBottom:`1px solid ${theme.border}`,
+      }}>
+        <div>
+          <div style={{ fontSize:18, fontWeight:700, color:theme.text, letterSpacing:'0.05em' }}>
+            {creature.name}
+          </div>
+          <div style={{ fontSize:10, color:theme.textMuted, marginTop:1 }}>
+            {creature.type} · Lv.{pet.level+1} {creature.levels[pet.level]}
+          </div>
+        </div>
+        <div style={{ textAlign:'right' }}>
+          <div style={{ fontSize:22 }}>{moodEmoji[pet.mood]||'😌'}</div>
+          <div style={{ fontSize:9, color:theme.textMuted }}>{timeOfDay}</div>
+        </div>
+      </div>
+
+      {/* Sprite stage */}
+      <div style={{
+        flex:1, display:'flex', flexDirection:'column',
+        alignItems:'center', justifyContent:'center',
+        background:`radial-gradient(ellipse at 50% 60%, ${creature.color}18 0%, transparent 70%)`,
+        position:'relative', padding:'16px 0',
+      }}>
+        {/* Sparkles */}
+        {sparkles.map((s,i) => (
+          <div key={i} style={{
+            position:'absolute', fontSize:14, color:theme.accent,
+            top:`${25+i*15}%`, left:`${25+i*25}%`,
+            animation:`sparkle 1.${i+2}s ease-in-out infinite`,
+            animationDelay:`${i*0.4}s`,
+          }}>{s}</div>
+        ))}
+
+        {/* Shadow */}
+        <div style={{
+          width:60, height:10, borderRadius:'50%',
+          background:`${creature.color}30`,
+          filter:'blur(6px)', marginBottom:-8,
+          animation: pet.mood!=='sleeping' ? 'pulse 2.4s ease-in-out infinite' : 'none',
+        }}/>
+
+        <AnimatedSprite creature={creature} level={pet.level} mood={pet.mood} scale={6} />
+
+        {/* Mood bubble */}
+        {pet.mood === 'sleeping' && (
+          <div style={{
+            position:'absolute', top:'15%', right:'25%',
+            fontSize:18, animation:'float 2s ease-in-out infinite',
+          }}>💤</div>
+        )}
+        {pet.mood === 'hungry' && (
+          <div style={{
+            position:'absolute', top:'15%', right:'22%',
+            fontSize:16, animation:'float 1s ease-in-out infinite',
+          }}>❓</div>
+        )}
+      </div>
+
+      {/* Stats panel */}
+      <div style={{
+        padding:'12px 16px 8px',
+        background:theme.bgPanel,
+        borderTop:`1px solid ${theme.border}`,
+      }}>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0 16px' }}>
+          <StatBar label="饱食度" icon="🍖" value={pet.stats.hunger}   theme={theme} />
+          <StatBar label="心情"   icon="💛" value={pet.stats.mood}     theme={theme} color={theme.special} />
+          <StatBar label="健康"   icon="💚" value={pet.stats.health}   theme={theme} color={theme.success} />
+          <StatBar label="精力"   icon="⚡" value={pet.stats.energy}   theme={theme} />
+          <StatBar label="羁绊"   icon="🌸" value={pet.stats.bond}     theme={theme} color={theme.special} />
+          <StatBar label="进化"   icon="✨" value={pet.stats.evo}      theme={theme} color={theme.accent} />
+        </div>
+
+        {/* Quick actions */}
+        <div style={{ display:'flex', gap:8, marginTop:10 }}>
+          {[
+            { icon:'🍖', label:'喂食', action:'feed' },
+            { icon:'🎮', label:'玩耍', action:'play' },
+            { icon:'💊', label:'治疗', action:'heal' },
+          ].map(btn => (
+            <button key={btn.action} onClick={() => onAction(btn.action)} style={{
+              flex:1, padding:'8px 0', border:`1px solid ${theme.btnBorder}`,
+              background:theme.btnBg, color:theme.btnText, borderRadius:6,
+              fontSize:11, cursor:'pointer', letterSpacing:'0.05em',
+              display:'flex', flexDirection:'column', alignItems:'center', gap:3,
+            }}>
+              <span style={{ fontSize:18 }}>{btn.icon}</span>
+              <span>{btn.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SCREEN: FEED
+// ─────────────────────────────────────────────────────────────────
+const FOODS = [
+  { id:'herb',   name:'灵草',   icon:'🌿', hunger:20, mood:5,  bond:2,  cost:10  },
+  { id:'fruit',  name:'仙果',   icon:'🍑', hunger:35, mood:15, bond:5,  cost:25  },
+  { id:'elixir', name:'丹药',   icon:'💊', hunger:10, mood:0,  bond:0,  cost:40, health:30 },
+  { id:'meat',   name:'神兽肉', icon:'🍖', hunger:50, mood:10, bond:8,  cost:60  },
+  { id:'candy',  name:'灵糖',   icon:'🍬', hunger:5,  mood:30, bond:10, cost:15  },
+  { id:'tea',    name:'古茶',   icon:'🍵', hunger:15, mood:20, bond:3,  cost:20  },
+];
+
+function FeedScreen({ pet, theme, onFeed }) {
+  const [fed, setFed] = useState(null);
+
+  const handleFeed = (food) => {
+    setFed(food.id);
+    onFeed(food);
+    setTimeout(() => setFed(null), 1200);
+  };
+
+  return (
+    <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      <div style={{ padding:'12px 16px 8px', borderBottom:`1px solid ${theme.border}` }}>
+        <div style={{ fontSize:16, color:theme.text, fontWeight:600, letterSpacing:'0.08em' }}>
+          喂食
+        </div>
+        <div style={{ fontSize:11, color:theme.textMuted, marginTop:2 }}>
+          饱食度：{Math.round(pet.stats.hunger)}/100 · 灵石：{pet.coins}
+        </div>
+      </div>
+
+      {/* Sprite preview */}
+      <div style={{
+        display:'flex', justifyContent:'center', padding:'16px 0 8px',
+        background:`radial-gradient(ellipse at 50% 60%, ${CREATURES[pet.creatureId].color}12 0%, transparent 70%)`,
+      }}>
+        <AnimatedSprite creature={CREATURES[pet.creatureId]} level={pet.level} mood={fed ? 'happy' : pet.mood} scale={4} />
+        {fed && <div style={{
+          position:'absolute', fontSize:22,
+          animation:'float 1s ease-in-out forwards',
+        }}>✨</div>}
+      </div>
+
+      {/* Food grid */}
+      <div style={{
+        flex:1, overflowY:'auto', padding:'8px 16px 16px',
+        display:'grid', gridTemplateColumns:'1fr 1fr', gap:10,
+      }}>
+        {FOODS.map(food => {
+          const selected = fed === food.id;
+          return (
+            <button key={food.id} onClick={() => handleFeed(food)} style={{
+              padding:'12px 10px', border:`1px solid ${selected ? theme.accent : theme.border}`,
+              background: selected ? theme.accentSoft : theme.bgCard,
+              borderRadius:8, cursor:'pointer', textAlign:'left',
+              animation: selected ? 'pulse 0.3s ease' : 'none',
+              transition:'all 0.15s',
+            }}>
+              <div style={{ fontSize:24, marginBottom:6 }}>{food.icon}</div>
+              <div style={{ fontSize:13, color:theme.text, marginBottom:4, letterSpacing:'0.05em' }}>
+                {food.name}
+              </div>
+              <div style={{ fontSize:10, color:theme.textMuted, lineHeight:1.6 }}>
+                {food.hunger>0 && <span style={{color:theme.statFill}}>饱食+{food.hunger} </span>}
+                {food.mood>0   && <span style={{color:theme.special}}>心情+{food.mood} </span>}
+                {food.health   && <span style={{color:theme.success}}>健康+{food.health} </span>}
+                {food.bond>0   && <span style={{color:theme.accent}}>羁绊+{food.bond}</span>}
+              </div>
+              <div style={{
+                marginTop:6, fontSize:10,
+                color: pet.coins >= food.cost ? theme.accent : theme.danger,
+              }}>
+                💎 {food.cost}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SCREEN: TRAIN
+// ─────────────────────────────────────────────────────────────────
+const TRAININGS = [
+  { id:'run',     name:'奔行',   icon:'🏃', label:'体力训练', energy:-20, evo:8,  bond:3, desc:'在灵山间奔跑，锻炼体魄' },
+  { id:'meditate',name:'冥想',   icon:'🧘', label:'心法修炼', energy:-10, evo:12, bond:5, desc:'静心修炼，感悟天地之气' },
+  { id:'battle',  name:'试炼',   icon:'⚔️', label:'实战磨砺', energy:-35, evo:20, bond:8, desc:'与幻象对战，磨砺战力' },
+  { id:'forage',  name:'觅食',   icon:'🌿', label:'野外探索', energy:-15, evo:6,  bond:4, desc:'在灵境中探索，收集资源', coins:15 },
+];
+
+function TrainScreen({ pet, theme, onTrain }) {
+  const [active, setActive] = useState(null);
+
+  const handleTrain = (t) => {
+    if (pet.stats.energy < Math.abs(t.energy)) return;
+    setActive(t.id);
+    onTrain(t);
+    setTimeout(() => setActive(null), 1500);
+  };
+
+  return (
+    <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      <div style={{ padding:'12px 16px 8px', borderBottom:`1px solid ${theme.border}` }}>
+        <div style={{ fontSize:16, color:theme.text, fontWeight:600, letterSpacing:'0.08em' }}>
+          训练修炼
+        </div>
+        <div style={{ fontSize:11, color:theme.textMuted, marginTop:2 }}>
+          精力：{Math.round(pet.stats.energy)}/100 · 进化：{Math.round(pet.stats.evo)}/100
+        </div>
+      </div>
+
+      <div style={{
+        display:'flex', justifyContent:'center', padding:'12px 0 6px',
+        background:`radial-gradient(ellipse at 50% 60%, ${CREATURES[pet.creatureId].color}12 0%, transparent 70%)`,
+      }}>
+        <AnimatedSprite
+          creature={CREATURES[pet.creatureId]}
+          level={pet.level}
+          mood={active ? 'happy' : pet.mood}
+          scale={4}
+        />
+      </div>
+
+      <div style={{ flex:1, overflowY:'auto', padding:'8px 16px 16px' }}>
+        {TRAININGS.map(t => {
+          const canDo = pet.stats.energy >= Math.abs(t.energy);
+          const isActive = active === t.id;
+          return (
+            <button key={t.id} onClick={() => handleTrain(t)} style={{
+              display:'flex', alignItems:'center', gap:12,
+              width:'100%', padding:'12px 14px', marginBottom:10,
+              border:`1px solid ${isActive ? theme.accent : canDo ? theme.border : theme.textDim}`,
+              background: isActive ? theme.accentSoft : theme.bgCard,
+              borderRadius:8, cursor: canDo ? 'pointer' : 'not-allowed',
+              opacity: canDo ? 1 : 0.5, textAlign:'left',
+              transition:'all 0.15s',
+            }}>
+              <span style={{ fontSize:28 }}>{t.icon}</span>
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:13, color:theme.text, fontWeight:600, letterSpacing:'0.05em' }}>
+                  {t.name}
+                  <span style={{ fontSize:10, color:theme.textMuted, fontWeight:400, marginLeft:6 }}>
+                    {t.label}
+                  </span>
+                </div>
+                <div style={{ fontSize:10, color:theme.textMuted, marginTop:2 }}>{t.desc}</div>
+                <div style={{ fontSize:10, marginTop:4, display:'flex', gap:8 }}>
+                  <span style={{color:theme.danger}}>精力{t.energy}</span>
+                  <span style={{color:theme.accent}}>进化+{t.evo}</span>
+                  <span style={{color:theme.special}}>羁绊+{t.bond}</span>
+                  {t.coins && <span style={{color:theme.success}}>+{t.coins}💎</span>}
+                </div>
+              </div>
+              {isActive && <span style={{ fontSize:20, animation:'spin 0.5s linear' }}>⚡</span>}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SCREEN: EVOLVE
+// ─────────────────────────────────────────────────────────────────
+function EvolveScreen({ pet, theme, onEvolve }) {
+  const creature = CREATURES[pet.creatureId];
+  const canEvolve = pet.stats.evo >= 100 && pet.level < 4;
+  const [evolving, setEvolving] = useState(false);
+
+  const handleEvolve = () => {
+    if (!canEvolve) return;
+    setEvolving(true);
+    setTimeout(() => { onEvolve(); setEvolving(false); }, 2000);
+  };
+
+  return (
+    <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      <div style={{ padding:'12px 16px 8px', borderBottom:`1px solid ${theme.border}` }}>
+        <div style={{ fontSize:16, color:theme.text, fontWeight:600, letterSpacing:'0.08em' }}>进化</div>
+        <div style={{ fontSize:11, color:theme.textMuted, marginTop:2 }}>
+          当前：Lv.{pet.level+1} {creature.levels[pet.level]}
+        </div>
+      </div>
+
+      {/* Evolution path */}
+      <div style={{ padding:'16px', overflowY:'auto', flex:1 }}>
+        <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+          {creature.levels.map((lv, i) => {
+            const unlocked = i <= pet.level;
+            const isCurrent = i === pet.level;
+            const isNext = i === pet.level + 1;
+            return (
+              <div key={i} style={{
+                display:'flex', alignItems:'center', gap:12,
+                padding:'12px 14px',
+                border:`1px solid ${isCurrent ? theme.accent : unlocked ? theme.border : theme.textDim}`,
+                background: isCurrent ? theme.accentSoft : theme.bgCard,
+                borderRadius:8, opacity: unlocked || isNext ? 1 : 0.4,
+              }}>
+                <div style={{
+                  width:48, height:48, borderRadius:6,
+                  background:theme.bgPanel, border:`1px solid ${theme.border}`,
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  overflow:'hidden',
+                }}>
+                  <PixelSprite creature={creature} level={i} scale={3} />
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:14, color: isCurrent ? theme.accent : theme.text, fontWeight:600 }}>
+                    Lv.{i+1} {lv}
+                  </div>
+                  {isCurrent && <div style={{ fontSize:10, color:theme.accent, marginTop:2 }}>← 当前形态</div>}
+                  {isNext && !canEvolve && (
+                    <div style={{ fontSize:10, color:theme.textMuted, marginTop:2 }}>
+                      进化进度：{Math.round(pet.stats.evo)}/100
+                    </div>
+                  )}
+                  {isNext && canEvolve && (
+                    <div style={{ fontSize:10, color:theme.success, marginTop:2 }}>✦ 可以进化！</div>
+                  )}
+                  {!unlocked && !isNext && (
+                    <div style={{ fontSize:10, color:theme.textDim, marginTop:2 }}>🔒 未解锁</div>
+                  )}
+                </div>
+                {isCurrent && <span style={{ fontSize:20 }}>⭐</span>}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Evolve button */}
+        <div style={{ marginTop:20 }}>
+          {pet.level >= 4 ? (
+            <div style={{
+              textAlign:'center', padding:'16px',
+              color:theme.accent, fontSize:14, letterSpacing:'0.1em',
+              border:`1px solid ${theme.accent}`, borderRadius:8,
+              background:theme.accentSoft,
+            }}>
+              ✦ 已达最终形态 ✦
+            </div>
+          ) : (
+            <button onClick={handleEvolve} disabled={!canEvolve} style={{
+              width:'100%', padding:'14px',
+              background: canEvolve ? theme.accent : theme.bgCard,
+              border:`1px solid ${canEvolve ? theme.accent : theme.border}`,
+              color: canEvolve ? '#000' : theme.textDim,
+              borderRadius:8, fontSize:14, fontWeight:700,
+              letterSpacing:'0.1em', cursor: canEvolve ? 'pointer' : 'not-allowed',
+              fontFamily:'inherit',
+              animation: canEvolve ? `glow 2s ease-in-out infinite` : 'none',
+            }}>
+              {evolving ? '进化中...' : canEvolve ? '✦ 立即进化 ✦' : `进化进度不足 (${Math.round(pet.stats.evo)}/100)`}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SCREEN: COMPENDIUM
+// ─────────────────────────────────────────────────────────────────
+function CompendiumScreen({ pet, theme }) {
+  const [selected, setSelected] = useState(pet.creatureId);
+  const creature = CREATURES[selected];
+
+  return (
+    <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      <div style={{ padding:'12px 16px 8px', borderBottom:`1px solid ${theme.border}` }}>
+        <div style={{ fontSize:16, color:theme.text, fontWeight:600, letterSpacing:'0.08em' }}>神兽图鉴</div>
+      </div>
+
+      {/* Creature selector */}
+      <div style={{
+        display:'flex', gap:10, padding:'12px 16px',
+        borderBottom:`1px solid ${theme.border}`,
+      }}>
+        {Object.values(CREATURES).map(c => (
+          <button key={c.id} onClick={() => setSelected(c.id)} style={{
+            flex:1, padding:'10px 6px',
+            border:`1px solid ${selected===c.id ? theme.accent : theme.border}`,
+            background: selected===c.id ? theme.accentSoft : theme.bgCard,
+            borderRadius:8, cursor:'pointer',
+            display:'flex', flexDirection:'column', alignItems:'center', gap:4,
+          }}>
+            <PixelSprite creature={c} level={c.id === pet.creatureId ? pet.level : 0} scale={3} />
+            <span style={{ fontSize:11, color: selected===c.id ? theme.accent : theme.text, letterSpacing:'0.05em' }}>
+              {c.name}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Creature detail */}
+      <div style={{ flex:1, overflowY:'auto', padding:'16px' }}>
+        <div style={{
+          display:'flex', alignItems:'flex-start', gap:14,
+          marginBottom:16, padding:14,
+          background:theme.bgCard, border:`1px solid ${theme.border}`, borderRadius:8,
+        }}>
+          <div style={{
+            padding:8, background:theme.bgPanel,
+            border:`1px solid ${theme.border}`, borderRadius:6,
+          }}>
+            <PixelSprite
+              creature={creature}
+              level={creature.id === pet.creatureId ? pet.level : 0}
+              scale={4}
+            />
+          </div>
+          <div>
+            <div style={{ fontSize:20, color:theme.text, fontWeight:700, letterSpacing:'0.1em' }}>
+              {creature.name}
+            </div>
+            <div style={{ fontSize:11, color:theme.accent, marginTop:2 }}>{creature.type}</div>
+            <div style={{ fontSize:11, color:creature.color, marginTop:4 }}>
+              {creature.personality}
+            </div>
+          </div>
+        </div>
+
+        <div style={{
+          padding:14, background:theme.bgCard,
+          border:`1px solid ${theme.border}`, borderRadius:8, marginBottom:12,
+        }}>
+          <div style={{ fontSize:11, color:theme.textMuted, marginBottom:6, letterSpacing:'0.1em' }}>
+            古籍记载
+          </div>
+          <div style={{
+            fontSize:13, color:theme.text, lineHeight:1.8,
+            letterSpacing:'0.08em', fontStyle:'italic',
+          }}>
+            「{creature.desc}」
+          </div>
+        </div>
+
+        {/* Evolution forms */}
+        <div style={{
+          padding:14, background:theme.bgCard,
+          border:`1px solid ${theme.border}`, borderRadius:8,
+        }}>
+          <div style={{ fontSize:11, color:theme.textMuted, marginBottom:10, letterSpacing:'0.1em' }}>
+            进化形态
+          </div>
+          <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+            {creature.levels.map((lv, i) => {
+              const unlocked = creature.id === pet.creatureId ? i <= pet.level : i === 0;
+              return (
+                <div key={i} style={{
+                  flex:'1 0 80px', padding:'8px 6px',
+                  border:`1px solid ${theme.border}`,
+                  background:theme.bgPanel, borderRadius:6,
+                  textAlign:'center', opacity: unlocked ? 1 : 0.3,
+                }}>
+                  <PixelSprite creature={creature} level={i} scale={2} />
+                  <div style={{ fontSize:10, color:theme.textMuted, marginTop:4 }}>Lv.{i+1}</div>
+                  <div style={{ fontSize:10, color:theme.text }}>{lv}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SCREEN: SETTINGS
+// ─────────────────────────────────────────────────────────────────
+function SettingsScreen({ pet, theme, themeName, onTheme, onSwitch }) {
+  return (
+    <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      <div style={{ padding:'12px 16px 8px', borderBottom:`1px solid ${theme.border}` }}>
+        <div style={{ fontSize:16, color:theme.text, fontWeight:600, letterSpacing:'0.08em' }}>设置</div>
+      </div>
+
+      <div style={{ flex:1, overflowY:'auto', padding:'16px' }}>
+        {/* Theme */}
+        <div style={{ marginBottom:20 }}>
+          <div style={{ fontSize:11, color:theme.textMuted, letterSpacing:'0.1em', marginBottom:10 }}>
+            界面主题
+          </div>
+          {Object.entries(THEMES).map(([key, t]) => (
+            <button key={key} onClick={() => onTheme(key)} style={{
+              display:'flex', alignItems:'center', gap:12,
+              width:'100%', padding:'10px 14px', marginBottom:8,
+              border:`1px solid ${themeName===key ? theme.accent : theme.border}`,
+              background: themeName===key ? theme.accentSoft : theme.bgCard,
+              borderRadius:8, cursor:'pointer', textAlign:'left',
+              fontFamily:'inherit',
+            }}>
+              <div style={{
+                width:24, height:24, borderRadius:4,
+                background: t.accent, flexShrink:0,
+                boxShadow:`0 0 8px ${t.accent}60`,
+              }}/>
+              <div>
+                <div style={{ fontSize:13, color:theme.text }}>{t.name}</div>
+              </div>
+              {themeName===key && <span style={{ marginLeft:'auto', color:theme.accent, fontSize:16 }}>✓</span>}
+            </button>
+          ))}
+        </div>
+
+        {/* Switch creature */}
+        <div style={{ marginBottom:20 }}>
+          <div style={{ fontSize:11, color:theme.textMuted, letterSpacing:'0.1em', marginBottom:10 }}>
+            切换神兽
+          </div>
+          {Object.values(CREATURES).map(c => (
+            <button key={c.id} onClick={() => onSwitch(c.id)} style={{
+              display:'flex', alignItems:'center', gap:12,
+              width:'100%', padding:'10px 14px', marginBottom:8,
+              border:`1px solid ${pet.creatureId===c.id ? theme.accent : theme.border}`,
+              background: pet.creatureId===c.id ? theme.accentSoft : theme.bgCard,
+              borderRadius:8, cursor:'pointer', textAlign:'left',
+              fontFamily:'inherit',
+            }}>
+              <PixelSprite creature={c} level={0} scale={3} />
+              <div>
+                <div style={{ fontSize:14, color:theme.text, fontWeight:600 }}>{c.name}</div>
+                <div style={{ fontSize:10, color:theme.textMuted }}>{c.type}</div>
+              </div>
+              {pet.creatureId===c.id && (
+                <span style={{ marginLeft:'auto', color:theme.accent }}>当前</span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Prompts */}
+        <div style={{
+          padding:14, background:theme.bgCard,
+          border:`1px solid ${theme.border}`, borderRadius:8,
+        }}>
+          <div style={{ fontSize:11, color:theme.textMuted, letterSpacing:'0.1em', marginBottom:8 }}>
+            精灵图生成提示词 (Midjourney)
+          </div>
+          {Object.values(CREATURES).map(c => (
+            <div key={c.id} style={{ marginBottom:10 }}>
+              <div style={{ fontSize:12, color:theme.accent, marginBottom:4 }}>{c.name} ({c.nameEn})</div>
+              <div style={{
+                fontSize:10, color:theme.textMuted, lineHeight:1.7,
+                background:theme.bgPanel, padding:8, borderRadius:4,
+                border:`1px solid ${theme.textDim}`,
+                letterSpacing:'0.02em',
+              }}>
+                pixel art, {c.nameEn} Chinese mythical creature, chibi cute style, official Digimon art style,
+                bold black outline, vibrant flat colors, pure white background, centered,
+                {c.id === 'hundun' ? ' chaotic dark egg creature, abstract symmetrical swirl patterns, mysterious ancient energy, deep purple tones, gold spiral markings,' : ' wise white deer-like creature, glowing azure eyes, golden antlers, pure white fur, celestial aura, soft ethereal glow,'}
+                5 evolution stages from small to majestic, Lv1 to Lv5, game sprite sheet, 64x64px each --ar 5:1 --v 6
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// MAIN APP
+// ─────────────────────────────────────────────────────────────────
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "theme": "ink",
+  "creatureId": "hundun",
+  "tickSpeed": 8
+}/*EDITMODE-END*/;
+
+function App() {
+  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  const [screen, setScreen] = useState('main');
+  const theme = THEMES[tweaks.theme] || THEMES.ink;
+
+  const initPet = (id) => ({
+    creatureId: id,
+    level: 0,
+    mood: 'idle',
+    coins: 120,
+    stats: { hunger:80, mood:70, health:90, energy:75, bond:20, evo:0 },
+  });
+
+  const [pet, setPet] = useState(() => initPet(tweaks.creatureId));
+
+  // Sync creature when tweak changes
+  useEffect(() => {
+    setPet(p => p.creatureId === tweaks.creatureId ? p : initPet(tweaks.creatureId));
+  }, [tweaks.creatureId]);
+
+  // Auto-decay tick
+  useEffect(() => {
+    const id = setInterval(() => {
+      setPet(p => {
+        const s = { ...p.stats };
+        s.hunger  = Math.max(0, s.hunger  - 0.8 * tweaks.tickSpeed/8);
+        s.mood    = Math.max(0, s.mood    - 0.4 * tweaks.tickSpeed/8);
+        s.energy  = Math.max(0, s.energy  - 0.3 * tweaks.tickSpeed/8);
+        const mood =
+          s.hunger < 20 ? 'hungry' :
+          s.health < 20 ? 'sick'   :
+          s.mood   > 75 ? 'happy'  : 'idle';
+        return { ...p, stats:s, mood };
+      });
+    }, 3000);
+    return () => clearInterval(id);
+  }, [tweaks.tickSpeed]);
+
+  const handleAction = (action) => {
+    setPet(p => {
+      const s = { ...p.stats };
+      if (action === 'feed')  { s.hunger = Math.min(100, s.hunger+20); s.mood = Math.min(100, s.mood+5); }
+      if (action === 'play')  { s.mood   = Math.min(100, s.mood+20);   s.energy = Math.max(0, s.energy-10); s.bond = Math.min(100, s.bond+5); }
+      if (action === 'heal')  { s.health = Math.min(100, s.health+30); }
+      return { ...p, stats:s };
+    });
+  };
+
+  const handleFeed = (food) => {
+    setPet(p => {
+      if (p.coins < food.cost) return p;
+      const s = { ...p.stats };
+      s.hunger = Math.min(100, s.hunger + food.hunger);
+      s.mood   = Math.min(100, s.mood   + food.mood);
+      s.bond   = Math.min(100, s.bond   + food.bond);
+      if (food.health) s.health = Math.min(100, s.health + food.health);
+      return { ...p, stats:s, coins: p.coins - food.cost };
+    });
+  };
+
+  const handleTrain = (t) => {
+    setPet(p => {
+      const s = { ...p.stats };
+      s.energy = Math.max(0, s.energy + t.energy);
+      s.evo    = Math.min(100, s.evo + t.evo);
+      s.bond   = Math.min(100, s.bond + t.bond);
+      return { ...p, stats:s, coins: p.coins + (t.coins||0) };
+    });
+  };
+
+  const handleEvolve = () => {
+    setPet(p => {
+      if (p.level >= 4) return p;
+      const s = { ...p.stats, evo:0 };
+      return { ...p, level: p.level+1, stats:s };
+    });
+  };
+
+  const handleSwitch = (id) => {
+    setTweak('creatureId', id);
+    setScreen('main');
+  };
+
+  const screens = {
+    main:     <MainScreen     pet={pet} theme={theme} onAction={handleAction} />,
+    feed:     <FeedScreen     pet={pet} theme={theme} onFeed={handleFeed} />,
+    train:    <TrainScreen    pet={pet} theme={theme} onTrain={handleTrain} />,
+    evolve:   <EvolveScreen   pet={pet} theme={theme} onEvolve={handleEvolve} />,
+    compend:  <CompendiumScreen pet={pet} theme={theme} />,
+    settings: <SettingsScreen pet={pet} theme={theme} themeName={tweaks.theme} onTheme={t => setTweak('theme',t)} onSwitch={handleSwitch} />,
+  };
+
+  return (
+    <>
+      <style>{`
+        @keyframes glow {
+          0%,100% { box-shadow: 0 0 8px ${theme.accent}; }
+          50%      { box-shadow: 0 0 22px ${theme.accent}; }
+        }
+      `}</style>
+
+      {/* Phone shell */}
+      <div style={{
+        width: 375, height: 812,
+        background: theme.bg,
+        borderRadius: 40,
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        boxShadow: `0 0 0 8px #1a1a22, 0 0 0 10px #0a0a10, 0 40px 80px #00000090`,
+        position: 'relative',
+      }}>
+        {/* Status bar */}
+        <div style={{
+          height:44, display:'flex', alignItems:'center',
+          justifyContent:'space-between', padding:'0 24px',
+          background:theme.bg, flexShrink:0,
+        }}>
+          <span style={{ fontSize:12, color:theme.textMuted, fontWeight:600 }}>
+            {new Date().toLocaleTimeString('zh',{hour:'2-digit',minute:'2-digit'})}
+          </span>
+          <div style={{
+            width:120, height:24, background:'#000',
+            borderRadius:12, position:'absolute', left:'50%', transform:'translateX(-50%)',
+          }}/>
+          <div style={{ display:'flex', gap:5, alignItems:'center' }}>
+            <span style={{ fontSize:11, color:theme.textMuted }}>💎{pet.coins}</span>
+          </div>
+        </div>
+
+        {/* Screen content */}
+        <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', animation:'fadeIn 0.2s ease' }}>
+          {screens[screen]}
+        </div>
+
+        {/* Nav */}
+        <NavBar screen={screen} setScreen={setScreen} theme={theme} />
+
+        {/* Home indicator */}
+        <div style={{
+          height:20, display:'flex', alignItems:'center', justifyContent:'center',
+          background:theme.bg,
+        }}>
+          <div style={{ width:100, height:4, background:theme.border, borderRadius:2 }}/>
+        </div>
+      </div>
+
+      {/* Tweaks panel */}
+      <TweaksPanel>
+        <TweakSection title="外观主题">
+          <TweakRadio id="theme" label="主题" options={[
+            {value:'ink',   label:'水墨'},
+            {value:'dark',  label:'暗黑'},
+            {value:'rouge', label:'朱砂'},
+          ]}/>
+        </TweakSection>
+        <TweakSection title="神兽">
+          <TweakRadio id="creatureId" label="选择" options={[
+            {value:'hundun', label:'混沌'},
+            {value:'baize',  label:'白泽'},
+          ]}/>
+        </TweakSection>
+        <TweakSection title="游戏速度">
+          <TweakSlider id="tickSpeed" label="衰减速度" min={1} max={20} step={1}/>
+        </TweakSection>
+      </TweaksPanel>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

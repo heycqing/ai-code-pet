@@ -6,12 +6,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Pet } from '../game/pet.js';
 import { loadPet, savePet } from '../storage/petStorage';
+import { ZONES, formatDuration } from '../game/expedition.js';
 import PetSprite from '../components/PetSprite';
 import StatBar from '../components/StatBar';
 
 interface Props {
   onAdopt: () => void;
   onBattle: (pet: Pet) => void;
+  onExpedition: (pet: Pet) => void;
 }
 
 const FOOD_TYPES = [
@@ -21,7 +23,7 @@ const FOOD_TYPES = [
   { key: 'veggie', label: '蔬菜' },
 ];
 
-export default function HomeScreen({ onAdopt, onBattle }: Props) {
+export default function HomeScreen({ onAdopt, onBattle, onExpedition }: Props) {
   const [pet, setPet]         = useState<Pet | null>(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
@@ -130,6 +132,21 @@ export default function HomeScreen({ onAdopt, onBattle }: Props) {
           </View>
         </View>
 
+        {/* Expedition status banner */}
+        {pet.expedition && (() => {
+          const zone = ZONES.find(z => z.key === pet.expedition!.zone);
+          const remaining = pet.expedition!.duration - (Date.now() - pet.expedition!.startTime);
+          const timeStr = remaining > 0 ? formatDuration(Math.max(0, remaining)) : '即将归来...';
+          return (
+            <TouchableOpacity style={styles.expBanner} onPress={() => onExpedition(pet)}>
+              <Text style={styles.expBannerText}>
+                {zone?.emoji ?? '🗺️'}  远征中 · {zone?.name}
+              </Text>
+              <Text style={styles.expBannerSub}>剩余 {timeStr}  · 点击查看</Text>
+            </TouchableOpacity>
+          );
+        })()}
+
         {/* Actions */}
         {pet.isDead ? (
           <View style={styles.deadBox}>
@@ -180,6 +197,10 @@ export default function HomeScreen({ onAdopt, onBattle }: Props) {
                   <Text style={styles.btnEmoji}>⚔️</Text>
                   <Text style={styles.btnLabel}>战斗</Text>
                 </TouchableOpacity>
+                <TouchableOpacity style={styles.btnAction} onPress={() => onExpedition(pet)}>
+                  <Text style={styles.btnEmoji}>🗺️</Text>
+                  <Text style={styles.btnLabel}>{pet.expedition ? '远征中' : '远征'}</Text>
+                </TouchableOpacity>
               </View>
             )}
             <TouchableOpacity style={styles.btnDanger} onPress={handleDelete}>
@@ -222,4 +243,7 @@ const styles = StyleSheet.create({
   deadBox:    { alignItems: 'center', marginTop: 16 },
   deadText:   { color: '#6b7280', fontSize: 15, marginBottom: 8 },
   emptyText:  { color: '#6b7280', fontSize: 16, marginBottom: 20 },
+  expBanner:  { width: '100%', backgroundColor: '#1c2a1c', borderWidth: 1, borderColor: '#365e36', borderRadius: 10, padding: 12, marginBottom: 12, alignItems: 'center' },
+  expBannerText: { color: '#86efac', fontSize: 14, fontWeight: '600' },
+  expBannerSub:  { color: '#4ade80', fontSize: 12, marginTop: 3 },
 });

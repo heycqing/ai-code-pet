@@ -3,6 +3,7 @@ import * as readline from 'readline';
 import { getSprite, SPRITE_WIDTH, LCD_BG } from './pixelRenderer.js';
 import { DIGIMON, STAGE_LABELS } from './ascii.js';
 import { MAX_STAT } from './pet.js';
+import { ZONES, formatDuration } from './expedition.js';
 
 const COLORS = {
   border:  chalk.cyan,
@@ -111,6 +112,13 @@ export function renderPet(pet) {
   const expNeeded    = pet.level * 50;
   const battleRecord = `${COLORS.good(String(pet.wins))}胜 ${COLORS.bad(String(pet.losses))}败`;
 
+  const expeditionLine = pet.expedition ? (() => {
+    const zone = ZONES.find(z => z.key === pet.expedition.zone);
+    const remaining = pet.expedition.duration - (Date.now() - pet.expedition.startTime);
+    const timeStr = remaining > 0 ? formatDuration(Math.max(0, remaining)) : '即将归来...';
+    return ` ${chalk.bold.yellow('◈ 远征中')}  ${zone ? zone.emoji + ' ' + zone.name : ''}  ${COLORS.dim('剩余:')} ${chalk.yellow(timeStr)}`;
+  })() : null;
+
   const statLines = [
     center(COLORS.title('— 状态栏 —'), W),
     '',
@@ -120,6 +128,7 @@ export function renderPet(pet) {
     ` ${COLORS.label('年龄')}  ${COLORS.value(pet.getAgeString().padEnd(14))}  ` +
       `${COLORS.label('属性')} ${digimon.emoji} ${digimon.chineseName}`,
     '',
+    ...(expeditionLine ? [expeditionLine, ''] : []),
     ` ${COLORS.label('饱食度')} ${hungerBar(pet.hunger)}  ${statNum(MAX_STAT - pet.hunger)}%`,
     ` ${COLORS.label('快乐值')} ${statBar(pet.happiness)}  ${statNum(pet.happiness)}%`,
     ` ${COLORS.label('精力值')} ${statBar(pet.energy)}  ${statNum(pet.energy)}%`,
@@ -142,22 +151,28 @@ export function renderMenu(pet) {
     return;
   }
 
+  const onExpedition = !!pet.expedition;
+  const expLabel = onExpedition ? chalk.dim('远征中..') : '远征 🗺️';
+
   const actions = [
-    { key: '1', label: '喂食'   },
-    { key: '2', label: '玩耍'   },
-    { key: '3', label: '睡觉'   },
-    { key: '4', label: '治疗'   },
-    { key: '5', label: '洗澡'   },
-    { key: '6', label: '对战 ⚔️' },
+    { key: '1', label: '喂食'    },
+    { key: '2', label: '玩耍'    },
+    { key: '3', label: '睡觉'    },
+    { key: '4', label: '治疗'    },
+    { key: '5', label: '洗澡'    },
+    { key: '6', label: '对战 ⚔️'  },
+    { key: '7', label: expLabel  },
     { key: 'r', label: '重新孵化' },
-    { key: 'q', label: '退出'   },
+    { key: 'q', label: '退出'    },
   ];
 
   console.log(COLORS.dim('  ────────────────────────────────────────────────────'));
   const row1 = actions.slice(0, 4).map(a => `  ${COLORS.action('[' + a.key + ']')} ${a.label}`).join('  ');
-  const row2 = actions.slice(4).map(a => `  ${COLORS.action('[' + a.key + ']')} ${a.label}`).join('  ');
+  const row2 = actions.slice(4, 7).map(a => `  ${COLORS.action('[' + a.key + ']')} ${a.label}`).join('  ');
+  const row3 = actions.slice(7).map(a => `  ${COLORS.action('[' + a.key + ']')} ${a.label}`).join('  ');
   console.log(row1);
   console.log(row2);
+  console.log(row3);
   console.log(COLORS.dim('  ────────────────────────────────────────────────────'));
 }
 
@@ -272,6 +287,80 @@ export function setupKeyInput(onKey) {
     } else {
       onKey(str, key);
     }
+  });
+}
+
+// ─────────────────────────────────────────────
+// Expedition submenu
+// ─────────────────────────────────────────────
+export async function renderExpeditionMenu(pet) {
+  console.log();
+  console.log(COLORS.title('  ─── 选择远征区域 ───'));
+  console.log();
+
+  const available = ZONES.map((z, i) => ({ ...z, idx: i + 1 }));
+  for (const z of available) {
+    const locked = pet.level < z.minLevel;
+    const durationStr = formatDuration(z.duration);
+    const levelStr    = `Lv.${z.minLevel}+`;
+    const expStr      = `经验 ${z.expRange[0]}-${z.expRange[1]}`;
+    if (locked) {
+      console.log(COLORS.dim(`    [${z.idx}] ${z.emoji} ${z.name.padEnd(6)}  ${durationStr.padEnd(8)}  ${levelStr.padEnd(7)}  风险:${z.risk}  ${expStr}  🔒`));
+    } else {
+      console.log(`    ${COLORS.action('[' + z.idx + ']')} ${z.emoji} ${COLORS.value(z.name.padEnd(6))}  ${COLORS.dim(durationStr.padEnd(8))}  ${COLORS.dim(levelStr.padEnd(7))}  ${COLORS.dim('风险:' + z.risk)}  ${COLORS.good(expStr)}`);
+      console.log(COLORS.dim(`         ${z.desc}`));
+    }
+    console.log();
+  }
+  console.log(COLORS.dim('    [0] 取消'));
+  console.log();
+
+  return new Promise(resolve => {
+    process.stdout.write('  选择区域 > ');
+    subMenuKeyHandler = (str, key) => {
+      if (key && key.ctrl && key.name === 'c') { subMenuKeyHandler = null; process.exit(0); }
+      const ch = (str || '').trim();
+      subMenuKeyHandler = null;
+      process.stdout.write(ch + '\n');
+      const zone = available.find(z => String(z.idx) === ch);
+      resolve(zone ? zone.key : null);
+    };
+  });
+}
+
+export function renderExpeditionResult(petName, result) {
+  const { events, totals, zone } = result;
+  console.log();
+  console.log(COLORS.evolve(`  ✦ ${petName} 从 ${zone.emoji} ${zone.name} 回来了！✦`));
+  console.log();
+  console.log(COLORS.title('  ── 远征日记 ──'));
+  console.log();
+  for (const ev of events) {
+    console.log(`    ${COLORS.dim('·')} ${COLORS.value(ev)}`);
+  }
+  console.log();
+  console.log(COLORS.title('  ── 收获 ──'));
+  console.log();
+  console.log(`    ${COLORS.good('经验值')}  +${totals.exp}`);
+  if (totals.hunger    < 0) console.log(`    ${COLORS.good('饱食度')}  ${totals.hunger}`);
+  if (totals.happiness > 0) console.log(`    ${COLORS.good('快乐值')}  +${totals.happiness}`);
+  if (totals.happiness < 0) console.log(`    ${COLORS.bad('快乐值')}  ${totals.happiness}`);
+  if (totals.energy    > 0) console.log(`    ${COLORS.good('精力值')}  +${totals.energy}`);
+  if (totals.energy    < 0) console.log(`    ${COLORS.bad('精力值')}  ${totals.energy}`);
+  if (totals.health    > 0) console.log(`    ${COLORS.good('健康值')}  +${totals.health}`);
+  if (totals.health    < 0) console.log(`    ${COLORS.bad('健康值')}  ${totals.health}`);
+  console.log();
+}
+
+export async function waitForAnyKey(prompt = '  按任意键继续...') {
+  process.stdout.write(prompt);
+  return new Promise(resolve => {
+    subMenuKeyHandler = (str, key) => {
+      if (key && key.ctrl && key.name === 'c') { subMenuKeyHandler = null; process.exit(0); }
+      subMenuKeyHandler = null;
+      process.stdout.write('\n');
+      resolve();
+    };
   });
 }
 

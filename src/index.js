@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import { Pet } from './pet.js';
 import { loadPet, savePet } from './storage.js';
 import { startBattle } from './battle.js';
+import { startExpedition, checkExpedition, applyExpeditionResult } from './expedition.js';
 import {
   renderPet,
   renderMenu,
@@ -10,6 +11,9 @@ import {
   renderEvolution,
   renderFeedMenu,
   renderAdoptScreen,
+  renderExpeditionMenu,
+  renderExpeditionResult,
+  waitForAnyKey,
   setupKeyInput,
 } from './ui.js';
 import { STAGE_LABELS } from './ascii.js';
@@ -192,6 +196,47 @@ async function handleAction(key) {
       startAutoRefresh();
       return;
     }
+    case '7': {
+      isInSubMenu = true;
+      if (refreshTimer) clearInterval(refreshTimer);
+
+      if (pet.expedition) {
+        const status = checkExpedition(pet);
+        if (status && status.ongoing) {
+          isInSubMenu = false;
+          setMessage(`${pet.name}还在远征中，请耐心等待！`);
+        } else if (status && !status.ongoing) {
+          // Expedition just finished
+          const gain = applyExpeditionResult(pet, status.result);
+          leveledUp = gain.leveledUp;
+          evolved   = gain.evolved;
+          newStage  = pet.stageIndex;
+          savePet(pet);
+          renderExpeditionResult(pet.name, status.result);
+          if (leveledUp) renderLevelUp(pet.level);
+          if (evolved)   renderEvolution(STAGE_LABELS[newStage] ?? '');
+          await waitForAnyKey();
+          isInSubMenu = false;
+          setMessage(`${pet.name}归来了！`);
+        }
+      } else {
+        render();
+        const zoneKey = await renderExpeditionMenu(pet);
+        if (zoneKey) {
+          result = startExpedition(pet, zoneKey);
+          setMessage(result.msg, !result.success);
+        } else {
+          setMessage('取消远征');
+        }
+        isInSubMenu = false;
+      }
+
+      pet.applyTimeDecay();
+      savePet(pet);
+      render();
+      startAutoRefresh();
+      return;
+    }
     case 'r':
     case 'R': {
       await adoptNewPet();
@@ -274,10 +319,26 @@ async function main() {
   if (saved && saved.name) {
     pet = saved;
     pet.applyTimeDecay();
-    savePet(pet);
-    const elapsed = Math.floor((Date.now() - (saved.lastSaved || Date.now())) / 1000 / 60);
-    if (elapsed > 5) {
-      setMessage(`你离开了 ${elapsed} 分钟，${pet.name} 好想你！`);
+
+    // Check if expedition finished while we were away
+    const expStatus = checkExpedition(pet);
+    if (expStatus && !expStatus.ongoing) {
+      savePet(pet); // save cleared expedition field first
+      const gain = applyExpeditionResult(pet, expStatus.result);
+      savePet(pet);
+      renderExpeditionResult(pet.name, expStatus.result);
+      if (gain.leveledUp) renderLevelUp(pet.level);
+      if (gain.evolved)   renderEvolution(STAGE_LABELS[gain.newStage] ?? '');
+      await waitForAnyKey();
+      setMessage(`${pet.name}归来了！`);
+    } else {
+      savePet(pet);
+      const elapsed = Math.floor((Date.now() - (saved.lastSaved || Date.now())) / 1000 / 60);
+      if (elapsed > 5 && !pet.expedition) {
+        setMessage(`你离开了 ${elapsed} 分钟，${pet.name} 好想你！`);
+      } else if (pet.expedition) {
+        setMessage(`${pet.name}还在远征中，正耐心等你回来！`);
+      }
     }
   } else {
     await firstTimeSetup();

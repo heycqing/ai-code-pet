@@ -6,30 +6,31 @@ import { Pet } from './src/game/pet.js';
 import HomeScreen from './src/screens/HomeScreen';
 import AdoptScreen from './src/screens/AdoptScreen';
 import BattleScreen from './src/screens/BattleScreen';
+import ExpeditionScreen from './src/screens/ExpeditionScreen';
 
-type Screen = 'home' | 'adopt' | 'battle';
+type Screen = 'home' | 'adopt' | 'battle' | 'expedition';
 
 export default function App() {
   const [screen, setScreen]       = useState<Screen>('home');
-  const [battlePet, setBattlePet] = useState<Pet | null>(null);
+  const [activePet, setActivePet] = useState<Pet | null>(null);
 
   // On launch: decide whether to show adopt or home
   useEffect(() => {
     loadPet().then(p => setScreen(p ? 'home' : 'adopt'));
   }, []);
 
-  const goHome   = () => setScreen('home');
-  const goAdopt  = () => setScreen('adopt');
-  const goBattle = (pet: Pet) => { setBattlePet(pet); setScreen('battle'); };
+  const goHome       = () => setScreen('home');
+  const goAdopt      = () => setScreen('adopt');
+  const goBattle     = (pet: Pet) => { setActivePet(pet); setScreen('battle'); };
+  const goExpedition = (pet: Pet) => { setActivePet(pet); setScreen('expedition'); };
 
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
-      {screen === 'adopt'  && <AdoptScreen onAdopted={goHome} />}
-      {screen === 'home'   && <HomeScreen onAdopt={goAdopt} onBattle={goBattle} />}
-      {screen === 'battle' && battlePet && (
-        <BattleScreen pet={battlePet} onBack={goHome} />
-      )}
+      {screen === 'adopt'      && <AdoptScreen onAdopted={goHome} />}
+      {screen === 'home'       && <HomeScreen onAdopt={goAdopt} onBattle={goBattle} onExpedition={goExpedition} />}
+      {screen === 'battle'     && activePet && <BattleScreen pet={activePet} onBack={goHome} />}
+      {screen === 'expedition' && activePet && <ExpeditionScreen pet={activePet} onBack={goHome} />}
     </SafeAreaProvider>
   );
 }

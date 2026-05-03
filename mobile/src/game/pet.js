@@ -31,6 +31,7 @@ export class Pet {
     this.message   = data.message   ?? '';
     this.wins      = data.wins      ?? 0;
     this.losses    = data.losses    ?? 0;
+    this.expedition = data.expedition ?? null;
     this.messageTimer = 0;
   }
 
@@ -56,6 +57,13 @@ export class Pet {
     const now = Date.now();
     const minutesPassed = (now - this.lastSaved) / 1000 / 60;
     if (minutesPassed < 0.016) return;
+
+    // While on expedition, only age advances — stats are frozen
+    if (this.expedition) {
+      this.age += Math.min(minutesPassed, 480);
+      this.lastSaved = now;
+      return;
+    }
 
     const effectiveMinutes = Math.min(minutesPassed, 480);
 
@@ -210,6 +218,7 @@ export class Pet {
       createdAt: this.createdAt,
       wins: this.wins,
       losses: this.losses,
+      expedition: this.expedition,
     };
   }
 }

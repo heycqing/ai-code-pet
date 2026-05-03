@@ -32,6 +32,8 @@ export class Pet {
     this.wins      = data.wins      ?? 0;
     this.losses    = data.losses    ?? 0;
     this.expedition = data.expedition ?? null;
+    this.bond      = data.bond      ?? 0;
+    this.coins     = data.coins     ?? 100;
     this.messageTimer = 0;
   }
 
@@ -105,6 +107,7 @@ export class Pet {
     this.hunger    = clamp(this.hunger    + food.hunger,    MIN_STAT, MAX_STAT);
     this.happiness = clamp(this.happiness + food.happiness, MIN_STAT, MAX_STAT);
     this.energy    = clamp(this.energy    + food.energy,    MIN_STAT, MAX_STAT);
+    this.bond      = clamp(this.bond      + 2,              MIN_STAT, MAX_STAT);
 
     this.gainExp(5);
     return { success: true, msg: `${this.name}开心地吃了${food.name}！` };
@@ -118,6 +121,7 @@ export class Pet {
     this.happiness = clamp(this.happiness + 20, MIN_STAT, MAX_STAT);
     this.energy    = clamp(this.energy    - 20, MIN_STAT, MAX_STAT);
     this.hunger    = clamp(this.hunger    + 10, MIN_STAT, MAX_STAT);
+    this.bond      = clamp(this.bond      +  5, MIN_STAT, MAX_STAT);
 
     this.gainExp(8);
     return { success: true, msg: `${this.name}玩得很开心！` };
@@ -147,6 +151,7 @@ export class Pet {
     if (this.isDead) return { success: false, msg: '...' };
     this.happiness = clamp(this.happiness + 10, MIN_STAT, MAX_STAT);
     this.health    = clamp(this.health    +  5, MIN_STAT, MAX_STAT);
+    this.bond      = clamp(this.bond      +  1, MIN_STAT, MAX_STAT);
     this.gainExp(3);
     return { success: true, msg: `${this.name}洗了个澡，干干净净！` };
   }
@@ -219,6 +224,8 @@ export class Pet {
       wins: this.wins,
       losses: this.losses,
       expedition: this.expedition,
+      bond: this.bond,
+      coins: this.coins,
     };
   }
 }

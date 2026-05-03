@@ -9,9 +9,11 @@ import { Pet } from '../game/pet.js';
 import { DIGIMON } from '../game/ascii.js';
 import { savePet } from '../storage/petStorage';
 import PetSprite from '../components/PetSprite';
+import { Theme } from '../theme';
 
 interface Props {
   onAdopted: () => void;
+  theme?: Theme;
 }
 
 const TYPES = Object.entries(DIGIMON).map(([key, info]: [string, any]) => ({
@@ -21,7 +23,13 @@ const TYPES = Object.entries(DIGIMON).map(([key, info]: [string, any]) => ({
   description: info.description,
 }));
 
-export default function AdoptScreen({ onAdopted }: Props) {
+export default function AdoptScreen({ onAdopted, theme }: Props) {
+  const bg          = theme?.bg          ?? '#0d1117';
+  const bgCard      = theme?.bgCard      ?? '#161b22';
+  const accent      = theme?.accent      ?? '#7c3aed';
+  const textColor   = theme?.text        ?? '#e5e7eb';
+  const textMuted   = theme?.textMuted   ?? '#9ca3af';
+  const border      = theme?.border      ?? '#374151';
   const [selected, setSelected] = useState<string | null>(null);
   const [name, setName]         = useState('');
   const [step, setStep]         = useState<'pick' | 'name'>('pick');
@@ -42,32 +50,32 @@ export default function AdoptScreen({ onAdopted }: Props) {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: bg }]}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         {/* keyboardShouldPersistTaps="handled" 让 iOS 单次点击直接触发按钮，不需要先收起键盘 */}
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <Text style={styles.title}>领养数码宝贝</Text>
+          <Text style={[styles.title, { color: textColor }]}>领养数码宝贝</Text>
 
           {step === 'pick' ? (
             <>
-              <Text style={styles.subtitle}>选择你的伙伴</Text>
+              <Text style={[styles.subtitle, { color: textMuted }]}>选择你的伙伴</Text>
               {TYPES.map(t => (
                 <TouchableOpacity
                   key={t.key}
-                  style={[styles.card, selected === t.key && styles.cardSelected]}
+                  style={[styles.card, { backgroundColor: bgCard, borderColor: selected === t.key ? accent : 'transparent' }]}
                   onPress={() => setSelected(t.key)}
                 >
                   <View style={styles.cardSprite}>
                     <PetSprite type={t.key} stageIndex={3} state="idle" pixelSize={4} />
                   </View>
                   <View style={styles.cardInfo}>
-                    <Text style={styles.cardName}>{t.emoji} {t.chineseName}</Text>
-                    <Text style={styles.cardDesc}>{t.description}</Text>
+                    <Text style={[styles.cardName, { color: textColor }]}>{t.emoji} {t.chineseName}</Text>
+                    <Text style={[styles.cardDesc, { color: textMuted }]}>{t.description}</Text>
                   </View>
                 </TouchableOpacity>
               ))}
               <TouchableOpacity
-                style={[styles.btnPrimary, !selected && styles.btnDisabled]}
+                style={[styles.btnPrimary, { backgroundColor: accent }, !selected && styles.btnDisabled]}
                 disabled={!selected}
                 onPress={() => setStep('name')}
               >
@@ -79,18 +87,18 @@ export default function AdoptScreen({ onAdopted }: Props) {
               <View style={styles.preview}>
                 <PetSprite type={selected!} stageIndex={0} state="idle" pixelSize={6} />
               </View>
-              <Text style={styles.subtitle}>给它起个名字</Text>
+              <Text style={[styles.subtitle, { color: textMuted }]}>给它起个名字</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: bgCard, color: textColor, borderColor: border }]}
                 value={name}
                 onChangeText={setName}
                 placeholder="宝贝的名字..."
-                placeholderTextColor="#4b5563"
+                placeholderTextColor={textMuted}
                 maxLength={10}
                 autoFocus
               />
               <TouchableOpacity
-                style={[styles.btnPrimary, (!name.trim() || saving) && styles.btnDisabled]}
+                style={[styles.btnPrimary, { backgroundColor: accent }, (!name.trim() || saving) && styles.btnDisabled]}
                 disabled={!name.trim() || saving}
                 onPress={handleAdopt}
               >
@@ -100,7 +108,7 @@ export default function AdoptScreen({ onAdopted }: Props) {
                 }
               </TouchableOpacity>
               <TouchableOpacity style={styles.btnBack} onPress={() => setStep('pick')}>
-                <Text style={styles.btnBackText}>返回</Text>
+                <Text style={[styles.btnBackText, { color: textMuted }]}>返回</Text>
               </TouchableOpacity>
             </>
           )}
@@ -111,21 +119,20 @@ export default function AdoptScreen({ onAdopted }: Props) {
 }
 
 const styles = StyleSheet.create({
-  safe:         { flex: 1, backgroundColor: '#0d1117' },
+  safe:         { flex: 1 },
   scroll:       { padding: 24, alignItems: 'center' },
-  title:        { fontSize: 22, fontWeight: 'bold', color: '#e5e7eb', marginBottom: 8 },
-  subtitle:     { fontSize: 14, color: '#9ca3af', marginBottom: 20 },
-  card:         { flexDirection: 'row', backgroundColor: '#161b22', borderRadius: 12, padding: 12, marginBottom: 12, width: '100%', borderWidth: 2, borderColor: 'transparent' },
-  cardSelected: { borderColor: '#7c3aed' },
+  title:        { fontSize: 22, fontWeight: 'bold', marginBottom: 8 },
+  subtitle:     { fontSize: 14, marginBottom: 20 },
+  card:         { flexDirection: 'row', borderRadius: 12, padding: 12, marginBottom: 12, width: '100%', borderWidth: 2 },
   cardSprite:   { marginRight: 12, borderRadius: 6, overflow: 'hidden' },
   cardInfo:     { flex: 1, justifyContent: 'center' },
-  cardName:     { fontSize: 15, fontWeight: '600', color: '#e5e7eb' },
-  cardDesc:     { fontSize: 12, color: '#6b7280', marginTop: 4 },
+  cardName:     { fontSize: 15, fontWeight: '600' },
+  cardDesc:     { fontSize: 12, marginTop: 4 },
   preview:      { borderRadius: 10, overflow: 'hidden', marginBottom: 20 },
-  input:        { width: '100%', backgroundColor: '#161b22', color: '#e5e7eb', fontSize: 16, borderRadius: 10, padding: 14, marginBottom: 20, borderWidth: 1, borderColor: '#374151' },
-  btnPrimary:   { backgroundColor: '#7c3aed', paddingHorizontal: 40, paddingVertical: 14, borderRadius: 12, marginTop: 8, minHeight: 50, alignItems: 'center', justifyContent: 'center' },
+  input:        { width: '100%', fontSize: 16, borderRadius: 10, padding: 14, marginBottom: 20, borderWidth: 1 },
+  btnPrimary:   { paddingHorizontal: 40, paddingVertical: 14, borderRadius: 12, marginTop: 8, minHeight: 50, alignItems: 'center', justifyContent: 'center' },
   btnDisabled:  { opacity: 0.4 },
   btnText:      { color: '#fff', fontSize: 16, fontWeight: '600' },
   btnBack:      { marginTop: 16, padding: 8 },
-  btnBackText:  { color: '#6b7280', fontSize: 14 },
+  btnBackText:  { fontSize: 14 },
 });

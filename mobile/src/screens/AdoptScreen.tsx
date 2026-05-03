@@ -54,7 +54,7 @@ export default function AdoptScreen({ onAdopted, theme }: Props) {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         {/* keyboardShouldPersistTaps="handled" 让 iOS 单次点击直接触发按钮，不需要先收起键盘 */}
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <Text style={[styles.title, { color: textColor }]}>领养数码宝贝</Text>
+          <Text style={[styles.title, { color: textColor }]}>领养神兽</Text>
 
           {step === 'pick' ? (
             <>

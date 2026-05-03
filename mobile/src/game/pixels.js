@@ -3691,10 +3691,283 @@ const SERAPHIMON = {
   ],
 };
 
+// ═══════════════════════════════════════════
+//  HUNDUN LINE 🌀
+//  Inspired by the Shanhaijing image: yellow sack, red like cinnabar fire,
+//  six legs, four wings, and no face or openings.
+// ═══════════════════════════════════════════
+function fit32(row) {
+  if (row.length === 32) return row;
+  if (row.length < 32) {
+    const left = Math.floor((32 - row.length) / 2);
+    const right = 32 - row.length - left;
+    return '_'.repeat(left) + row + '_'.repeat(right);
+  }
+  const left = Math.floor((row.length - 32) / 2);
+  return row.slice(left, left + 32);
+}
+
+function rows(base, edits = []) {
+  const next = base.map(fit32);
+  edits.forEach(([index, value]) => { next[index] = fit32(value); });
+  return next;
+}
+
+function states(base, variants = {}) {
+  base = base.map(fit32);
+  return {
+    idle: base,
+    happy: variants.happy ?? rows(base, [
+      [3,  '______________YYYY______________'],
+      [4,  '__________YY__YYYY__YY__________'],
+    ]),
+    hungry: variants.hungry ?? rows(base, [
+      [15, '________BBTTTTCCCCCCCCBB________'],
+      [16, '______BBTTTTCCCCCCCCCCCCBB______'],
+    ]),
+    sad: variants.sad ?? rows(base, [
+      [7,  '______BB________________BB______'],
+      [24, '__________OOOO______OOOO________'],
+    ]),
+    sick: variants.sick ?? rows(base, [
+      [10, '________GGGGTTTTTTTTGGGG________'],
+      [11, '______GGGGTTTTTTTTTTTTGGGG______'],
+    ]),
+    sleeping: variants.sleeping ?? rows(base, [
+      [8,  '________aaaa________aaaa________'],
+      [9,  '______aaaa____________aaaa______'],
+    ]),
+    dead: variants.dead ?? rows(base, [
+      [10, '________ffffRRffffRRffff________'],
+      [11, '______ffffRRffffRRffffRRff______'],
+    ]),
+  };
+}
+
+const HUNDUN_EGG_BASE = [
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '______________YYYY______________',
+  '__________YYYYYYYYYYYY__________',
+  '________YYYYYYYYYYYYYYYY________',
+  '______KKTTTTTTTTTTTTTTKK______',
+  '______KKTTTTTTTTTTTTTTKK______',
+  '____KKTTTTTTTTTTTTTTTTTTKK____',
+  '____KKTTTTTTTTTTTTTTTTTTKK____',
+  '____KKTTTTTTRRRRTTTTTTTTKK____',
+  '____KKTTTTTTRRRRTTTTTTTTKK____',
+  '____KKTTTTTTTTTTTTTTTTTTKK____',
+  '____KKTTTTTTTTTTTTTTTTTTKK____',
+  '______KKTTTTTTTTTTTTTTKK______',
+  '______KKTTTTTTTTTTTTTTKK______',
+  '________KKTTTTTTTTTTKK________',
+  '__________KKKKKKKKKK__________',
+  '____________BBBBBB____________',
+  '____________BBBBBB____________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+];
+
+const HUNDUN_BABY_BASE = [
+  '________________________________',
+  '________________________________',
+  '______________BBBB______________',
+  '__________BBBBHHHHBBBB__________',
+  '________BBHHHHHHHHHHHHBB________',
+  '______BBHHTTTTTTTTTTHHHHBB______',
+  '____BBHHTTTTTTTTTTTTTTHHHHBB____',
+  '____BBTTTTTTTTTTTTTTTTTTBB____',
+  '____BBTTTTTTTRRRRTTTTTTTBB____',
+  '____BBTTTTTTTRRRRTTTTTTTBB____',
+  '____BBTTTTTTTTTTTTTTTTTTBB____',
+  '______BBTTTTTTTTTTTTTTBB______',
+  '________BBTTTTTTTTTTBB________',
+  '__________BBBBTTBBBB__________',
+  '________BBHHHHBBHHHHBB________',
+  '______BBHHBB________BBHHBB______',
+  '____BBHHBB____________BBHHBB____',
+  '__________DD______DD__________',
+  '__________DD______DD__________',
+  '________DD__________DD________',
+  '________DD__________DD________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+];
+
+const HUNDUN_DAN_BASE = [
+  '________________________________',
+  '______________HHHH______________',
+  '__________HHHHRRRRHHHH__________',
+  '________HHHHRRRRRRRRHHHH________',
+  '______BBHHRRTTTTTTTTRRHHBB______',
+  '____BBHHRRTTTTTTTTTTTTRRHHBB____',
+  '__BBHHBBTTTTTTTTTTTTTTBBHHBB__',
+  '__BBHHBBTTTTTTTTTTTTTTBBHHBB__',
+  '____BBTTTTTTRRRRRRTTTTTTBB____',
+  '____BBTTTTTTRRRRRRTTTTTTBB____',
+  '____BBTTTTTTTTTTTTTTTTTTBB____',
+  '______BBTTTTTTTTTTTTTTBB______',
+  '________BBTTTTTTTTTTBB________',
+  '______BBHHBBBBTTBBBBHHBB______',
+  '____BBHHBB__________BBHHBB____',
+  '__BBHHBB______________BBHHBB__',
+  '________DD__DD__DD__DD________',
+  '________DD__DD__DD__DD________',
+  '______DD____DD__DD____DD______',
+  '______DD____DD__DD____DD______',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+];
+
+const HUNDUN_BEAST_BASE = [
+  '____________HH______HH____________',
+  '________HHHHRRHHHHHHRRHHHH________',
+  '______HHRRRRHH____HHRRRRHH______',
+  '____BBHHRRBB________BBRRHHBB____',
+  '__BBHHBBTTTTTTTTTTTTTTBBHHBB__',
+  '__BBHHBBTTTTTTTTTTTTTTBBHHBB__',
+  'BBHHBBTTTTTTTTTTTTTTTTTTBBHHBB',
+  'BBHHBBTTTTTTTTTTTTTTTTTTBBHHBB',
+  '____BBTTTTRRRRTTTTRRRRTTTTBB____',
+  '____BBTTTTRRRRTTTTRRRRTTTTBB____',
+  '____BBTTTTTTTTTTTTTTTTTTTTBB____',
+  '____BBTTTTTTTTTTTTTTTTTTTTBB____',
+  '______BBTTTTTTTTTTTTTTTTBB______',
+  '________BBTTTTTTTTTTTTBB________',
+  '______BBHHBBBBTTBBBBHHBB______',
+  '____BBHHBB__________BBHHBB____',
+  '__BBHHBB______________BBHHBB__',
+  '______DD__DD__DD__DD__DD______',
+  '______DD__DD__DD__DD__DD______',
+  '____DD____DD__DD__DD____DD____',
+  '____DD____DD__DD__DD____DD____',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+];
+
+const HUNDUN_WING_BASE = [
+  '________HHHH________HHHH________',
+  '______HHRRHH________HHRRHH______',
+  '____HHRRHH____________HHRRHH____',
+  '__BBHHBBTTTTTTTTTTTTBBHHBB__',
+  'BBHHBBTTTTTTTTTTTTTTTTBBHHBB',
+  'BBHHBBTTTTTTTTTTTTTTTTBBHHBB',
+  '__BBTTTTTTTTTTTTTTTTTTTTBB__',
+  '__BBTTTTTTRRRRRRRRTTTTTTBB__',
+  '__BBTTTTTTRRRRRRRRTTTTTTBB__',
+  '__BBTTTTTTTTTTTTTTTTTTTTBB__',
+  '__BBTTTTTTTTTTTTTTTTTTTTBB__',
+  'BBHHBBTTTTTTTTTTTTTTTTBBHHBB',
+  'BBHHBBTTTTTTTTTTTTTTTTBBHHBB',
+  '__BBHHBBTTTTTTTTTTTTBBHHBB__',
+  '____BBHHBBBBTTTTBBBBHHBB____',
+  '______BBHHBB____BBHHBB______',
+  '____BBHHBB________BBHHBB____',
+  '__BBHHBB____________BBHHBB__',
+  '____DD__DD__DD__DD__DD__DD____',
+  '____DD__DD__DD__DD__DD__DD____',
+  '__DD____DD__DD__DD__DD____DD__',
+  '__DD____DD__DD__DD__DD____DD__',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+];
+
+const HUNDUN_FINAL_BASE = [
+  '______HHHH____________HHHH______',
+  '____HHRRHH____________HHRRHH____',
+  '__HHRRHH________________HHRRHH__',
+  'BBHHBBTTTTTTTTTTTTTTTTBBHHBB',
+  'BBHHBBTTTTTTTTTTTTTTTTBBHHBB',
+  '__BBTTTTTTTTTTTTTTTTTTTTBB__',
+  '__BBTTTTTRRRRRRRRRRTTTTBB__',
+  '__BBTTTTRRRRRRRRRRRRTTTBB__',
+  '__BBTTTTTTTTTTTTTTTTTTTTBB__',
+  '__BBTTTTTTTTTTTTTTTTTTTTBB__',
+  '__BBTTTTTTTTTTTTTTTTTTTTBB__',
+  '__BBTTTTTTTTTTTTTTTTTTTTBB__',
+  'BBHHBBTTTTTTTTTTTTTTTTBBHHBB',
+  'BBHHBBTTTTTTTTTTTTTTTTBBHHBB',
+  'BBHHBBTTTTTTTTTTTTTTTTBBHHBB',
+  '__BBHHBBTTTTTTTTTTTTBBHHBB__',
+  '____BBHHBBBBTTTTBBBBHHBB____',
+  '______BBHHBB____BBHHBB______',
+  '____BBHHBB________BBHHBB____',
+  '__BBHHBB____________BBHHBB__',
+  '____DD__DD__DD__DD__DD__DD____',
+  '____DD__DD__DD__DD__DD__DD____',
+  '__DD____DD__DD__DD__DD____DD__',
+  '__DD____DD__DD__DD__DD____DD__',
+  '________________________________',
+  '__________RR________RR__________',
+  '______RRRR____________RRRR______',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+  '________________________________',
+];
+
+const HUNDUN = [
+  states(HUNDUN_EGG_BASE),
+  states(HUNDUN_BABY_BASE),
+  states(HUNDUN_DAN_BASE),
+  states(HUNDUN_BEAST_BASE),
+  states(HUNDUN_WING_BASE),
+  states(HUNDUN_FINAL_BASE),
+];
+
 // ─────────────────────────────────────────────
 // Assembled sprite table keyed by digimon type
 // ─────────────────────────────────────────────
 export const SPRITES = {
+  hundun:  HUNDUN,
   agumon:  [EGG_SPR, BOTAMON,  KOROMON,    AGUMON,  GREYMON,      METALGREYMON],
   gabumon: [EGG_SPR, PUNIMON,  TSUNOMON,   GABUMON, GARURUMON,    METALGARURUMON],
   patamon: [EGG_SPR, POYOMON,  TOKOMON,    PATAMON, ANGEMON,      SERAPHIMON],

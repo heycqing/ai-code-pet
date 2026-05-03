@@ -86,7 +86,7 @@ const EVENTS = {
 export function startExpedition(pet, zoneKey) {
   const zone = ZONES.find(z => z.key === zoneKey);
   if (!zone)               return { success: false, msg: '未知的远征区域' };
-  if (pet.isDead)          return { success: false, msg: '数码宝贝已经离开了...' };
+  if (pet.isDead)          return { success: false, msg: '神兽已经离开了...' };
   if (pet.expedition)      return { success: false, msg: '已经在远征中了！' };
   if (pet.level < zone.minLevel)
     return { success: false, msg: `需要 Lv.${zone.minLevel} 才能进入${zone.name}` };

@@ -86,7 +86,7 @@ export default function BattleScreen({ pet: initialPet, onBack, theme }: Props) 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: bg }]}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={[styles.title, { color: accent }]}>⚔  数码宝贝对战  ⚔</Text>
+        <Text style={[styles.title, { color: accent }]}>⚔  神兽对战  ⚔</Text>
 
         {/* Sprites */}
         <View style={styles.spriteRow}>

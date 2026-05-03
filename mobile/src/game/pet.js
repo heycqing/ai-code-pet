@@ -13,10 +13,9 @@ const DECAY = {
 export class Pet {
   constructor(data = {}) {
     this.name = data.name || '小宝';
-    // type is the digimon line key: 'agumon' | 'gabumon' | 'patamon'
-    // Migrate legacy types (cat/dog/bunny) → default to agumon
+    // Migrate legacy types (digimon / cat/dog/bunny) → default to hundun
     const validTypes = Object.keys(DIGIMON);
-    this.type = validTypes.includes(data.type) ? data.type : 'agumon';
+    this.type = validTypes.includes(data.type) ? data.type : 'hundun';
 
     this.age       = data.age       ?? 0;
     this.hunger    = data.hunger    ?? 20;

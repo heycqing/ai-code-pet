@@ -70,7 +70,7 @@ export default function TrainScreen({ pet, theme, onBattle, onExpedition, onPetU
             <View style={styles.cardInfo}>
               <Text style={[styles.cardTitle, { color: theme.text }]}>实战对决</Text>
               <Text style={[styles.cardDesc, { color: theme.textMuted }]}>
-                与敌方数码宝贝对战，磨砺战斗技巧
+                与敌方神兽对战，磨砺战斗技巧
               </Text>
             </View>
           </View>

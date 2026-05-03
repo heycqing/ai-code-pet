@@ -17,11 +17,15 @@ interface Props {
   screen: NavTab;
   setScreen: (s: NavTab) => void;
   theme: Theme;
+  bottomInset?: number;
 }
 
-export default function NavBar({ screen, setScreen, theme }: Props) {
+export default function NavBar({ screen, setScreen, theme, bottomInset = 0 }: Props) {
   return (
-    <View style={[styles.bar, { backgroundColor: theme.navBg, borderTopColor: theme.navBorder }]}>
+    <View style={[
+      styles.bar,
+      { backgroundColor: theme.navBg, borderTopColor: theme.navBorder, paddingBottom: Math.max(bottomInset, 6) },
+    ]}>
       {TABS.map(tab => {
         const active = tab.id === screen;
         return (
@@ -34,7 +38,7 @@ export default function NavBar({ screen, setScreen, theme }: Props) {
             {active && (
               <View style={[styles.activeIndicator, { backgroundColor: theme.accent }]} />
             )}
-            <Text style={styles.icon}>{tab.icon}</Text>
+            <Text style={[styles.icon, { opacity: active ? 1 : 0.5 }]}>{tab.icon}</Text>
             <Text style={[
               styles.label,
               { color: active ? theme.accent : theme.textMuted },
@@ -51,30 +55,30 @@ export default function NavBar({ screen, setScreen, theme }: Props) {
 const styles = StyleSheet.create({
   bar: {
     flexDirection: 'row',
-    borderTopWidth: 1,
-    paddingBottom: 4,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: 6,
   },
   tab: {
     flex: 1,
     alignItems: 'center',
-    paddingTop: 6,
     paddingBottom: 2,
     position: 'relative',
   },
   activeIndicator: {
     position: 'absolute',
-    top: 0,
+    top: -6,
     left: '20%',
     right: '20%',
     height: 2,
     borderRadius: 1,
   },
   icon: {
-    fontSize: 18,
+    fontSize: 20,
     marginBottom: 2,
   },
   label: {
     fontSize: 10,
     fontWeight: '500',
+    letterSpacing: 0.3,
   },
 });

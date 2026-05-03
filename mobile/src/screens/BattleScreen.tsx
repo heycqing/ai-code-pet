@@ -54,7 +54,8 @@ export default function BattleScreen({ pet: initialPet, onBack, theme }: Props) 
 
   const handleEnd = async () => {
     if (state?.result?.won) {
-      pet.wins = (pet.wins ?? 0) + 1;
+      pet.wins   = (pet.wins   ?? 0) + 1;
+      pet.coins  = (pet.coins  ?? 0) + (state.result.coinGain ?? 0);
       pet.gainExp(state.result.expGain ?? 0);
     } else if (state?.result && !state.result.fled) {
       pet.losses = (pet.losses ?? 0) + 1;
@@ -113,8 +114,9 @@ export default function BattleScreen({ pet: initialPet, onBack, theme }: Props) 
         {isDone ? (
           <View style={styles.resultBox}>
             <Text style={[styles.resultText, { color: phase === 'won' ? success : danger }]}>
-              {phase === 'won'  ? `★ 胜利！获得 ${state.result?.expGain ?? 0} 经验值` :
-               phase === 'fled' ? '成功逃脱' : '败北了...'}
+              {phase === 'won'
+                ? `★ 胜利！+${state.result?.expGain ?? 0} EXP  💎 +${state.result?.coinGain ?? 0}`
+                : phase === 'fled' ? '成功逃脱' : '败北了...'}
             </Text>
             <TouchableOpacity style={[styles.btnPrimary, { backgroundColor: accent }]} onPress={handleEnd}>
               <Text style={styles.btnText}>返回</Text>

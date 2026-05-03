@@ -69,6 +69,8 @@ export class Pet {
 
     const effectiveMinutes = Math.min(minutesPassed, 480);
 
+    this.coins = (this.coins ?? 100) + Math.floor(0.5 * effectiveMinutes);
+
     this.hunger    = clamp(this.hunger    + DECAY.hunger    * effectiveMinutes, MIN_STAT, MAX_STAT);
     this.happiness = clamp(this.happiness - DECAY.happiness * effectiveMinutes, MIN_STAT, MAX_STAT);
     this.energy    = clamp(this.energy    - DECAY.energy    * effectiveMinutes, MIN_STAT, MAX_STAT);

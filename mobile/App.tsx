@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { loadPet, savePet, deleteSave } from './src/storage/petStorage';
 import { Pet } from './src/game/pet.js';
 import { THEMES, Theme } from './src/theme';
@@ -19,7 +19,8 @@ import ExpeditionScreen from './src/screens/ExpeditionScreen';
 
 type SubScreen = 'battle' | 'expedition' | 'adopt' | null;
 
-export default function App() {
+function AppInner() {
+  const insets = useSafeAreaInsets();
   const [pet,        setPet]        = useState<Pet | null>(null);
   const [loaded,     setLoaded]     = useState(false);
   const [activeTab,  setActiveTab]  = useState<NavTab>('main');
@@ -75,56 +76,52 @@ export default function App() {
     setActiveTab('train');
   };
 
-  // Current time string for status bar
-  const now = new Date();
-  const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
   if (!loaded) {
     return (
-      <SafeAreaProvider>
-        <View style={[styles.loadingScreen, { backgroundColor: theme.bg }]}>
-          <Text style={[styles.loadingText, { color: theme.textMuted }]}>加载中...</Text>
-        </View>
-      </SafeAreaProvider>
+      <View style={[styles.loadingScreen, { backgroundColor: theme.bg }]}>
+        <Text style={[styles.loadingText, { color: theme.textMuted }]}>加载中...</Text>
+      </View>
     );
   }
 
   // Sub-screens (full screen, no nav bar)
   if (subScreen === 'adopt' || (!pet && loaded)) {
     return (
-      <SafeAreaProvider>
+      <>
         <StatusBar style="light" />
         <AdoptScreen onAdopted={handleAdopted} theme={theme} />
-      </SafeAreaProvider>
+      </>
     );
   }
 
   if (subScreen === 'battle' && subPet) {
     return (
-      <SafeAreaProvider>
+      <>
         <StatusBar style="light" />
         <BattleScreen pet={subPet} onBack={handleSubBack} theme={theme} />
-      </SafeAreaProvider>
+      </>
     );
   }
 
   if (subScreen === 'expedition' && subPet) {
     return (
-      <SafeAreaProvider>
+      <>
         <StatusBar style="light" />
         <ExpeditionScreen pet={subPet} onBack={handleSubBack} theme={theme} />
-      </SafeAreaProvider>
+      </>
     );
   }
 
   // Main tab navigation
   return (
-    <SafeAreaProvider>
+    <>
       <StatusBar style="light" />
       <View style={[styles.root, { backgroundColor: theme.bg }]}>
-        {/* Status bar strip */}
-        <View style={[styles.statusStrip, { backgroundColor: theme.bgCard, borderBottomColor: theme.border }]}>
-          <Text style={[styles.statusTime, { color: theme.textMuted }]}>{timeStr}</Text>
+        {/* Coins strip — pushed below system status bar */}
+        <View style={[
+          styles.statusStrip,
+          { backgroundColor: theme.bgCard, borderBottomColor: theme.border, paddingTop: insets.top + 4 },
+        ]}>
           <Text style={[styles.statusCoins, { color: theme.accent }]}>💎 {pet?.coins ?? 0}</Text>
         </View>
 
@@ -174,8 +171,16 @@ export default function App() {
         </View>
 
         {/* Bottom NavBar */}
-        <NavBar screen={activeTab} setScreen={setActiveTab} theme={theme} />
+        <NavBar screen={activeTab} setScreen={setActiveTab} theme={theme} bottomInset={insets.bottom} />
       </View>
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <AppInner />
     </SafeAreaProvider>
   );
 }
@@ -184,8 +189,7 @@ const styles = StyleSheet.create({
   root:          { flex: 1 },
   loadingScreen: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   loadingText:   { fontSize: 16 },
-  statusStrip:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: 1 },
-  statusTime:    { fontSize: 13, fontWeight: '500' },
+  statusStrip:   { paddingHorizontal: 16, paddingBottom: 8, borderBottomWidth: 1, alignItems: 'flex-end' },
   statusCoins:   { fontSize: 13, fontWeight: '700' },
   content:       { flex: 1 },
 });

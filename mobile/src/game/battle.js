@@ -139,11 +139,12 @@ export function tickBattle(state, action, petEnergy) {
 
   // Check enemy defeat
   if (enemy.hp <= 0) {
-    const expGain = Math.round(enemy.maxHp * 0.6);
+    const expGain  = Math.round(enemy.maxHp * 0.6);
+    const coinGain = Math.floor(8 + enemy.stageIndex * 8 + Math.random() * 12);
     log.push(`★ 胜利！${player.name} 击败了 ${enemy.name}！★`);
-    log.push(`获得 ${expGain} 点经验值！`);
+    log.push(`获得 ${expGain} 点经验值，${coinGain} 灵石！`);
     state.phase  = 'won';
-    state.result = { won: true, fled: false, expGain, energyUsed };
+    state.result = { won: true, fled: false, expGain, coinGain, energyUsed };
     return state;
   }
 

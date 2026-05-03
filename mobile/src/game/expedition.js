@@ -11,6 +11,7 @@ export const ZONES = [
     duration: 30 * MIN,
     minLevel: 1,
     expRange: [15, 30],
+    coinsRange: [5, 15],
     risk: '低',
   },
   {
@@ -21,6 +22,7 @@ export const ZONES = [
     duration: 60 * MIN,
     minLevel: 3,
     expRange: [40, 80],
+    coinsRange: [15, 35],
     risk: '中',
   },
   {
@@ -31,6 +33,7 @@ export const ZONES = [
     duration: 2 * 60 * MIN,
     minLevel: 6,
     expRange: [100, 180],
+    coinsRange: [40, 80],
     risk: '高',
   },
   {
@@ -41,6 +44,7 @@ export const ZONES = [
     duration: 4 * 60 * MIN,
     minLevel: 11,
     expRange: [250, 400],
+    coinsRange: [100, 200],
     risk: '极高',
   },
 ];
@@ -124,7 +128,10 @@ function generateResult(zone, elapsed) {
   const [minExp, maxExp] = zone.expRange;
   const expGain = Math.floor(minExp + Math.random() * (maxExp - minExp));
 
-  const totals = { exp: expGain, hunger: 0, happiness: 0, energy: 0, health: 0 };
+  const [minCoins, maxCoins] = zone.coinsRange ?? [5, 15];
+  const coinsGain = Math.floor(minCoins + Math.random() * (maxCoins - minCoins));
+
+  const totals = { exp: expGain, coins: coinsGain, hunger: 0, happiness: 0, energy: 0, health: 0 };
   for (const ev of picked) {
     for (const [k, v] of Object.entries(ev)) {
       if (k === 'desc') continue;
@@ -139,6 +146,7 @@ export function applyExpeditionResult(pet, result) {
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
   const { totals } = result;
 
+  if (totals.coins)     pet.coins     = (pet.coins ?? 0) + totals.coins;
   if (totals.hunger)    pet.hunger    = clamp(pet.hunger    + totals.hunger,    0, 100);
   if (totals.happiness) pet.happiness = clamp(pet.happiness + totals.happiness, 0, 100);
   if (totals.energy)    pet.energy    = clamp(pet.energy    + totals.energy,    0, 100);

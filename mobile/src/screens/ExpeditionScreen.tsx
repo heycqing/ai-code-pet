@@ -171,6 +171,9 @@ export default function ExpeditionScreen({ pet: initialPet, onBack, theme }: Pro
           <Text style={[styles.sectionLabel, { color: accent }]}>── 收获 ──</Text>
           <View style={[styles.rewardBox, { backgroundColor: bgCard, borderColor: border, borderWidth: 1 }]}>
             <Text style={[styles.expGain, { color: accent }]}>经验值  +{totals.exp}</Text>
+            {totals.coins > 0 && (
+              <Text style={[styles.statGain, { color: accent }]}>💎 灵石  +{totals.coins}</Text>
+            )}
             {statRows.map(r => {
               const v = totals[r.key];
               if (!v) return null;

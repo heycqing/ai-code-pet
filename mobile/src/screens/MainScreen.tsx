@@ -84,11 +84,14 @@ export default function MainScreen({ pet, theme, onPetUpdate, onBattle, onExpedi
 
   const moodBubble = state === 'sleeping' ? '💤' : pet.hunger >= 80 ? '❓' : null;
 
-  const handleAction = async (action: 'play' | 'heal' | 'clean') => {
+  const isSleeping = state === 'sleeping';
+
+  const handleAction = async (action: 'play' | 'heal' | 'clean' | 'sleep') => {
     let result: { success: boolean; msg: string };
-    if (action === 'play')  result = pet.play();
-    else if (action === 'heal') result = pet.heal();
-    else result = pet.clean();
+    if (action === 'play')       result = pet.play();
+    else if (action === 'heal')  result = pet.heal();
+    else if (action === 'sleep') result = pet.sleep();
+    else                         result = pet.clean();
 
     if (result.success) {
       await savePet(pet);
@@ -176,25 +179,36 @@ export default function MainScreen({ pet, theme, onPetUpdate, onBattle, onExpedi
         {/* Quick actions */}
         <View style={styles.actionsRow}>
           <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: theme.btnBg, borderColor: theme.btnBorder }]}
-            onPress={() => handleAction('play')}
+            style={[styles.actionBtn, { backgroundColor: theme.btnBg, borderColor: theme.btnBorder }, isSleeping && styles.btnDisabled]}
+            onPress={() => !isSleeping && handleAction('play')}
+            activeOpacity={isSleeping ? 1 : 0.7}
           >
             <Text style={styles.actionIcon}>🎮</Text>
             <Text style={[styles.actionBtnText, { color: theme.btnText }]}>玩耍</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: theme.btnBg, borderColor: theme.btnBorder }]}
-            onPress={() => handleAction('heal')}
+            style={[styles.actionBtn, { backgroundColor: theme.btnBg, borderColor: theme.btnBorder }, isSleeping && styles.btnDisabled]}
+            onPress={() => !isSleeping && handleAction('heal')}
+            activeOpacity={isSleeping ? 1 : 0.7}
           >
             <Text style={styles.actionIcon}>💊</Text>
             <Text style={[styles.actionBtnText, { color: theme.btnText }]}>治疗</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: theme.btnBg, borderColor: theme.btnBorder }]}
-            onPress={() => handleAction('clean')}
+            style={[styles.actionBtn, { backgroundColor: theme.btnBg, borderColor: theme.btnBorder }, isSleeping && styles.btnDisabled]}
+            onPress={() => !isSleeping && handleAction('clean')}
+            activeOpacity={isSleeping ? 1 : 0.7}
           >
             <Text style={styles.actionIcon}>🛁</Text>
             <Text style={[styles.actionBtnText, { color: theme.btnText }]}>清洁</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: theme.btnBg, borderColor: theme.btnBorder }, pet.energy >= 90 && styles.btnDisabled]}
+            onPress={() => pet.energy < 90 && handleAction('sleep')}
+            activeOpacity={pet.energy >= 90 ? 1 : 0.7}
+          >
+            <Text style={styles.actionIcon}>💤</Text>
+            <Text style={[styles.actionBtnText, { color: theme.btnText }]}>睡觉</Text>
           </TouchableOpacity>
         </View>
 
@@ -224,8 +238,9 @@ const styles = StyleSheet.create({
   sectionTitle:  { fontSize: 13, fontWeight: '700', letterSpacing: 1, marginBottom: 10, textTransform: 'uppercase' },
   statsGrid:     { flexDirection: 'row', flexWrap: 'wrap', gap: 0 },
   statCell:      { width: '50%', paddingRight: 8 },
-  actionsRow:    { flexDirection: 'row', gap: 10, marginBottom: 12 },
+  actionsRow:    { flexDirection: 'row', gap: 8, marginBottom: 12 },
   actionBtn:     { flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: 12, borderWidth: 1 },
+  btnDisabled:   { opacity: 0.3 },
   actionIcon:    { fontSize: 22, marginBottom: 4 },
   actionBtnText: { fontSize: 13, fontWeight: '600' },
   moodText:      { textAlign: 'center', fontSize: 13, marginTop: 4 },
